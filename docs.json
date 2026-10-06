@@ -52,6 +52,7 @@
             "group": "Ways to use",
             "pages": [
               "ways-to-use/cloud-api",
+              "ways-to-use/copilot-cloud-agents",
               "ways-to-use/dedicated",
               "ways-to-use/on-prem",
               "ways-to-use/privacy"
