@@ -12,7 +12,7 @@ Thinking mode enables the model to reason step by step before producing its fina
 
 ## How It Works
 
-When thinking mode is enabled, the model generates internal reasoning tokens (wrapped in `<think>` tags) before the final response. These reasoning tokens help the model work through complex problems but are included in your output token usage.
+When thinking mode is enabled, the model generates internal reasoning tokens before the final response. The serving runtime separates these tokens into a structured `reasoning_content` field, so reasoning arrives beside `content` rather than embedded in it. Reasoning tokens are included in your output token usage.
 
 ## Enabling Thinking Mode
 
@@ -141,20 +141,18 @@ curl https://api.subconscious.dev/v1/messages \
 
 ## Response Format
 
-With the **OpenAI** format, the model's response includes reasoning wrapped in `<think>` tags
-followed by the final answer:
+With the **OpenAI** format, the reasoning arrives in the `reasoning_content` field of
+the response message, and `content` holds only the final answer:
 
-```
-<think>
-Let me calculate this step by step.
-127 * 849 = 127 * 800 + 127 * 49
-127 * 800 = 101,600
-127 * 49 = 6,223
-101,600 + 6,223 = 107,823
-107,823 + 3,621 = 111,444
-</think>
-
-The answer is **111,444**.
+```json
+{
+  "choices": [{
+    "message": {
+      "reasoning_content": "Let me calculate this step by step. 127 * 849 = 127 * 800 + 127 * 49 ...",
+      "content": "The answer is **111,444**."
+    }
+  }]
+}
 ```
 
 With the **Anthropic** format, the reasoning is returned as a separate `thinking` content block
@@ -171,7 +169,7 @@ before the `text` block, rather than inline tags:
 
 ## Streaming with Thinking
 
-Thinking mode works with streaming. The reasoning tokens stream first, followed by the final answer:
+Thinking mode works with streaming. The reasoning streams first in `delta.reasoning_content`, followed by the final answer in `delta.content`:
 
 <CodeGroup>
 
@@ -186,9 +184,11 @@ stream = client.chat.completions.create(
 )
 
 for chunk in stream:
-    content = chunk.choices[0].delta.content
-    if content:
-        print(content, end="", flush=True)
+    delta = chunk.choices[0].delta
+    if delta.reasoning_content:
+        print(delta.reasoning_content, end="", flush=True)
+    if delta.content:
+        print(delta.content, end="", flush=True)
 ```
 
 ```python Python (Anthropic)
