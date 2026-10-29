@@ -44,12 +44,17 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["model", "messages"],
+                "required": [
+                  "model",
+                  "messages"
+                ],
                 "properties": {
                   "model": {
                     "type": "string",
                     "description": "The model to use for completion.",
-                    "enum": ["subconscious/glm-5.3-marathon"],
+                    "enum": [
+                      "subconscious/glm-5.3-marathon"
+                    ],
                     "example": "subconscious/glm-5.3-marathon"
                   },
                   "messages": {
@@ -57,11 +62,18 @@
                     "description": "The conversation history. Each message has a role and content.",
                     "items": {
                       "type": "object",
-                      "required": ["role", "content"],
+                      "required": [
+                        "role",
+                        "content"
+                      ],
                       "properties": {
                         "role": {
                           "type": "string",
-                          "enum": ["system", "user", "assistant"],
+                          "enum": [
+                            "system",
+                            "user",
+                            "assistant"
+                          ],
                           "description": "The role of the message author."
                         },
                         "content": {
@@ -71,7 +83,10 @@
                       }
                     },
                     "example": [
-                      {"role": "user", "content": "What is the capital of France?"}
+                      {
+                        "role": "user",
+                        "content": "What is the capital of France?"
+                      }
                     ]
                   },
                   "stream": {
@@ -113,8 +128,16 @@
                   },
                   "stop": {
                     "oneOf": [
-                      {"type": "string"},
-                      {"type": "array", "items": {"type": "string"}, "maxItems": 4}
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 4
+                      }
                     ],
                     "description": "Up to 4 sequences where the model will stop generating."
                   },
@@ -124,7 +147,11 @@
                     "properties": {
                       "type": {
                         "type": "string",
-                        "enum": ["text", "json_object", "json_schema"]
+                        "enum": [
+                          "text",
+                          "json_object",
+                          "json_schema"
+                        ]
                       },
                       "json_schema": {
                         "type": "object",
@@ -182,7 +209,9 @@
                     },
                     "object": {
                       "type": "string",
-                      "enum": ["chat.completion"],
+                      "enum": [
+                        "chat.completion"
+                      ],
                       "description": "The object type."
                     },
                     "created": {
@@ -208,7 +237,9 @@
                             "properties": {
                               "role": {
                                 "type": "string",
-                                "enum": ["assistant"]
+                                "enum": [
+                                  "assistant"
+                                ]
                               },
                               "content": {
                                 "type": "string",
@@ -218,7 +249,10 @@
                           },
                           "finish_reason": {
                             "type": "string",
-                            "enum": ["stop", "length"],
+                            "enum": [
+                              "stop",
+                              "length"
+                            ],
                             "description": "The reason the model stopped generating."
                           }
                         }
@@ -267,8 +301,12 @@
         "summary": "Create a message",
         "description": "Generates a model response for the given conversation. This endpoint is fully compatible with the Anthropic Messages API, so you can use the Anthropic SDK by pointing its base URL at Subconscious.",
         "security": [
-          {"apiKeyAuth": []},
-          {"bearerAuth": []}
+          {
+            "apiKeyAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
         ],
         "x-codeSamples": [
           {
@@ -293,12 +331,18 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["model", "messages", "max_tokens"],
+                "required": [
+                  "model",
+                  "messages",
+                  "max_tokens"
+                ],
                 "properties": {
                   "model": {
                     "type": "string",
                     "description": "The model to use for completion.",
-                    "enum": ["subconscious/glm-5.3-marathon"],
+                    "enum": [
+                      "subconscious/glm-5.3-marathon"
+                    ],
                     "example": "subconscious/glm-5.3-marathon"
                   },
                   "messages": {
@@ -306,16 +350,24 @@
                     "description": "The conversation history. Each message has a role and content. Content is either a string or an array of content blocks (text, image, tool_use, tool_result, thinking).",
                     "items": {
                       "type": "object",
-                      "required": ["role", "content"],
+                      "required": [
+                        "role",
+                        "content"
+                      ],
                       "properties": {
                         "role": {
                           "type": "string",
-                          "enum": ["user", "assistant"],
+                          "enum": [
+                            "user",
+                            "assistant"
+                          ],
                           "description": "The role of the message author. System prompts are passed via the top-level `system` field, not as a message."
                         },
                         "content": {
                           "oneOf": [
-                            {"type": "string"},
+                            {
+                              "type": "string"
+                            },
                             {
                               "type": "array",
                               "items": {
@@ -324,26 +376,67 @@
                                 "properties": {
                                   "type": {
                                     "type": "string",
-                                    "enum": ["text", "image", "tool_use", "tool_result", "thinking"]
+                                    "enum": [
+                                      "text",
+                                      "image",
+                                      "tool_use",
+                                      "tool_result",
+                                      "thinking"
+                                    ]
                                   },
-                                  "text": {"type": "string"},
+                                  "text": {
+                                    "type": "string"
+                                  },
                                   "source": {
                                     "type": "object",
                                     "description": "Image source. Either base64 ({type:\"base64\", media_type, data}) or url ({type:\"url\", url}).",
                                     "properties": {
-                                      "type": {"type": "string", "enum": ["base64", "url"]},
-                                      "media_type": {"type": "string", "example": "image/png"},
-                                      "data": {"type": "string"},
-                                      "url": {"type": "string"}
+                                      "type": {
+                                        "type": "string",
+                                        "enum": [
+                                          "base64",
+                                          "url"
+                                        ]
+                                      },
+                                      "media_type": {
+                                        "type": "string",
+                                        "example": "image/png"
+                                      },
+                                      "data": {
+                                        "type": "string"
+                                      },
+                                      "url": {
+                                        "type": "string"
+                                      }
                                     }
                                   },
-                                  "id": {"type": "string", "description": "tool_use block id."},
-                                  "name": {"type": "string", "description": "tool_use block tool name."},
-                                  "input": {"type": "object", "description": "tool_use block arguments."},
-                                  "tool_use_id": {"type": "string", "description": "tool_result block: the id of the tool_use it answers."},
-                                  "content": {"description": "tool_result block content (string or array of blocks)."},
-                                  "is_error": {"type": "boolean", "description": "tool_result block: whether the tool call errored."},
-                                  "thinking": {"type": "string", "description": "thinking block reasoning text."}
+                                  "id": {
+                                    "type": "string",
+                                    "description": "tool_use block id."
+                                  },
+                                  "name": {
+                                    "type": "string",
+                                    "description": "tool_use block tool name."
+                                  },
+                                  "input": {
+                                    "type": "object",
+                                    "description": "tool_use block arguments."
+                                  },
+                                  "tool_use_id": {
+                                    "type": "string",
+                                    "description": "tool_result block: the id of the tool_use it answers."
+                                  },
+                                  "content": {
+                                    "description": "tool_result block content (string or array of blocks)."
+                                  },
+                                  "is_error": {
+                                    "type": "boolean",
+                                    "description": "tool_result block: whether the tool call errored."
+                                  },
+                                  "thinking": {
+                                    "type": "string",
+                                    "description": "thinking block reasoning text."
+                                  }
                                 }
                               }
                             }
@@ -352,7 +445,10 @@
                       }
                     },
                     "example": [
-                      {"role": "user", "content": "What is the capital of France?"}
+                      {
+                        "role": "user",
+                        "content": "What is the capital of France?"
+                      }
                     ]
                   },
                   "max_tokens": {
@@ -362,8 +458,26 @@
                   },
                   "system": {
                     "oneOf": [
-                      {"type": "string"},
-                      {"type": "array", "items": {"type": "object", "properties": {"type": {"type": "string", "enum": ["text"]}, "text": {"type": "string"}}}}
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": [
+                                "text"
+                              ]
+                            },
+                            "text": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
                     ],
                     "description": "A system prompt: a string or an array of text content blocks."
                   },
@@ -390,7 +504,9 @@
                   },
                   "stop_sequences": {
                     "type": "array",
-                    "items": {"type": "string"},
+                    "items": {
+                      "type": "string"
+                    },
                     "description": "Custom text sequences that will cause the model to stop generating."
                   },
                   "tools": {
@@ -398,11 +514,21 @@
                     "description": "Definitions of tools the model may use.",
                     "items": {
                       "type": "object",
-                      "required": ["name", "input_schema"],
+                      "required": [
+                        "name",
+                        "input_schema"
+                      ],
                       "properties": {
-                        "name": {"type": "string"},
-                        "description": {"type": "string"},
-                        "input_schema": {"type": "object", "description": "JSON Schema for the tool's input."}
+                        "name": {
+                          "type": "string"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "input_schema": {
+                          "type": "object",
+                          "description": "JSON Schema for the tool's input."
+                        }
                       }
                     }
                   },
@@ -410,23 +536,43 @@
                     "type": "object",
                     "description": "How the model should use the provided tools.",
                     "properties": {
-                      "type": {"type": "string", "enum": ["auto", "any", "tool"]},
-                      "name": {"type": "string", "description": "Required when type is `tool`: the tool the model must use."}
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "auto",
+                          "any",
+                          "tool"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Required when type is `tool`: the tool the model must use."
+                      }
                     }
                   },
                   "thinking": {
                     "type": "object",
                     "description": "Enable extended thinking. When enabled, the response includes `thinking` content blocks before the final `text` block.",
                     "properties": {
-                      "type": {"type": "string", "enum": ["enabled"]},
-                      "budget_tokens": {"type": "integer", "description": "Token budget for reasoning."}
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "enabled"
+                        ]
+                      },
+                      "budget_tokens": {
+                        "type": "integer",
+                        "description": "Token budget for reasoning."
+                      }
                     }
                   },
                   "metadata": {
                     "type": "object",
                     "description": "An object describing metadata about the request.",
                     "properties": {
-                      "user_id": {"type": "string"}
+                      "user_id": {
+                        "type": "string"
+                      }
                     }
                   },
                   "chat_template_kwargs": {
@@ -459,12 +605,16 @@
                     },
                     "type": {
                       "type": "string",
-                      "enum": ["message"],
+                      "enum": [
+                        "message"
+                      ],
                       "description": "The object type."
                     },
                     "role": {
                       "type": "string",
-                      "enum": ["assistant"]
+                      "enum": [
+                        "assistant"
+                      ]
                     },
                     "content": {
                       "type": "array",
@@ -472,13 +622,32 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "type": {"type": "string", "enum": ["text", "thinking", "tool_use"]},
-                          "text": {"type": "string"},
-                          "thinking": {"type": "string"},
-                          "signature": {"type": "string"},
-                          "id": {"type": "string"},
-                          "name": {"type": "string"},
-                          "input": {"type": "object"}
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "text",
+                              "thinking",
+                              "tool_use"
+                            ]
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "thinking": {
+                            "type": "string"
+                          },
+                          "signature": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "input": {
+                            "type": "object"
+                          }
                         }
                       }
                     },
@@ -488,19 +657,35 @@
                     },
                     "stop_reason": {
                       "type": "string",
-                      "enum": ["end_turn", "max_tokens", "tool_use"],
+                      "enum": [
+                        "end_turn",
+                        "max_tokens",
+                        "tool_use"
+                      ],
                       "description": "The reason the model stopped generating."
                     },
                     "stop_sequence": {
-                      "type": ["string", "null"],
+                      "type": [
+                        "string",
+                        "null"
+                      ],
                       "description": "The custom stop sequence that was generated, if any."
                     },
                     "usage": {
                       "type": "object",
                       "properties": {
-                        "input_tokens": {"type": "integer", "description": "Number of input tokens used."},
-                        "output_tokens": {"type": "integer", "description": "Number of output tokens generated."},
-                        "cache_read_input_tokens": {"type": "integer", "description": "Number of input tokens read from cache."}
+                        "input_tokens": {
+                          "type": "integer",
+                          "description": "Number of input tokens used."
+                        },
+                        "output_tokens": {
+                          "type": "integer",
+                          "description": "Number of output tokens generated."
+                        },
+                        "cache_read_input_tokens": {
+                          "type": "integer",
+                          "description": "Number of input tokens read from cache."
+                        }
                       }
                     }
                   }
@@ -519,6 +704,257 @@
           },
           "500": {
             "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/models": {
+      "get": {
+        "summary": "List models available to this API key",
+        "description": "Returns the canonical model catalog for the authenticated caller, filtered by the key's model access. Each entry describes the model's lifecycle, limits, modalities, capabilities, supported request wires, and deployment facts. The top-level rate_limits map reports the caller's enforced limits, keyed by the reserved all-models key or a model id.",
+        "operationId": "listModels",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "x-codeSamples": [
+          {
+            "lang": "python",
+            "label": "Python (OpenAI SDK)",
+            "source": "from openai import OpenAI\n\nclient = OpenAI(\n    api_key=\"your-api-key\",\n    base_url=\"https://api.subconscious.dev/v1\",\n)\n\nfor model in client.models.list():\n    print(model.id, model.name)"
+          },
+          {
+            "lang": "javascript",
+            "label": "Node.js (fetch)",
+            "source": "const response = await fetch(\"https://api.subconscious.dev/v1/models\", {\n  headers: { Authorization: `Bearer ${process.env.SUBCONSCIOUS_API_KEY}` },\n});\nconst catalog = await response.json();\nconsole.log(catalog.data.map((model) => model.id));\nconsole.log(catalog.rate_limits);"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The caller's model catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "object": {
+                      "type": "string",
+                      "enum": [
+                        "list"
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "schema_version": {
+                            "type": "string",
+                            "enum": [
+                              "1"
+                            ]
+                          },
+                          "id": {
+                            "type": "string",
+                            "description": "The model id to send in inference requests.",
+                            "example": "subconscious/glm-5.3-marathon"
+                          },
+                          "object": {
+                            "type": "string",
+                            "enum": [
+                              "model"
+                            ]
+                          },
+                          "created": {
+                            "type": "integer"
+                          },
+                          "owned_by": {
+                            "type": "string",
+                            "example": "subconscious"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "GLM 5.3 Marathon"
+                          },
+                          "lifecycle": {
+                            "type": "object",
+                            "properties": {
+                              "status": {
+                                "type": "string",
+                                "enum": [
+                                  "active",
+                                  "deprecated",
+                                  "retired"
+                                ]
+                              },
+                              "deprecation_date": {
+                                "type": "string",
+                                "description": "Calendar date the model stops being served, as YYYY-MM-DD (end of that date, UTC).",
+                                "example": "2026-11-05"
+                              },
+                              "replacement": {
+                                "type": "string",
+                                "description": "Model id to migrate to.",
+                                "example": "subconscious/glm-5.3-marathon"
+                              }
+                            }
+                          },
+                          "limits": {
+                            "type": "object",
+                            "properties": {
+                              "context_length": {
+                                "type": "integer",
+                                "description": "Context window in tokens."
+                              },
+                              "max_output_tokens": {
+                                "type": "integer"
+                              }
+                            }
+                          },
+                          "modalities": {
+                            "type": "object",
+                            "properties": {
+                              "input": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "text",
+                                    "image",
+                                    "audio",
+                                    "video",
+                                    "file"
+                                  ]
+                                }
+                              },
+                              "output": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "enum": [
+                                    "text",
+                                    "image",
+                                    "audio",
+                                    "video",
+                                    "file"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "capabilities": {
+                            "type": "object",
+                            "description": "Absent means unknown, not unsupported.",
+                            "properties": {
+                              "reasoning": {
+                                "type": "object",
+                                "properties": {
+                                  "supported": {
+                                    "type": "boolean"
+                                  },
+                                  "efforts": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string",
+                                      "enum": [
+                                        "low",
+                                        "medium",
+                                        "high"
+                                      ]
+                                    }
+                                  }
+                                }
+                              },
+                              "tools": {
+                                "type": "boolean"
+                              },
+                              "structured_output": {
+                                "type": "boolean"
+                              },
+                              "streaming": {
+                                "type": "boolean"
+                              },
+                              "temperature": {
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          "api": {
+                            "type": "object",
+                            "properties": {
+                              "chat_completions": {
+                                "type": "boolean"
+                              },
+                              "responses": {
+                                "type": "boolean"
+                              },
+                              "anthropic_messages": {
+                                "type": "boolean"
+                              }
+                            }
+                          },
+                          "deployment": {
+                            "type": "object",
+                            "properties": {
+                              "quantization": {
+                                "type": "string"
+                              },
+                              "tokenizer": {
+                                "type": "string"
+                              },
+                              "ready": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "rate_limits": {
+                      "type": "object",
+                      "description": "The caller's enforced limits, keyed by the reserved 'all' key or a model id. The stricter value governs a model that appears in both.",
+                      "additionalProperties": {
+                        "type": "object",
+                        "description": "The strictest enforced limit for each kind and window. An absent field means no limit of that kind is enforced.",
+                        "properties": {
+                          "requests_per_minute": {
+                            "type": "integer"
+                          },
+                          "requests_per_hour": {
+                            "type": "integer"
+                          },
+                          "requests_per_day": {
+                            "type": "integer"
+                          },
+                          "requests_per_month": {
+                            "type": "integer"
+                          },
+                          "tokens_per_minute": {
+                            "type": "integer"
+                          },
+                          "tokens_per_hour": {
+                            "type": "integer"
+                          },
+                          "tokens_per_day": {
+                            "type": "integer"
+                          },
+                          "tokens_per_month": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key"
           }
         }
       }

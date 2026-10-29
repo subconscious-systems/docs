@@ -42,6 +42,7 @@
           {
             "group": "Features",
             "pages": [
+              "features/model-discovery",
               "features/streaming",
               "features/thinking",
               "features/subconscious-cache",
@@ -71,6 +72,7 @@
           {
             "group": "Endpoints",
             "pages": [
+              "api-reference/models",
               "api-reference/chat-completions",
               "api-reference/messages"
             ]
