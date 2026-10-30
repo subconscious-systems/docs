@@ -3,7 +3,7 @@
   "info": {
     "title": "Subconscious platform API",
     "version": "1.0.0",
-    "description": "Management keys and organization usage on the Subconscious platform. Inference stays on https://api.subconscious.dev/v1."
+    "description": "Inference-key management, priced model discovery, and organization usage on the Subconscious platform. Inference stays on https://api.subconscious.dev/v1."
   },
   "servers": [
     {
@@ -291,7 +291,7 @@
       "get": {
         "operationId": "getUsage",
         "summary": "Get usage",
-        "description": "Today's usage for the organization that owns the inference key: plan, credit balance, daily allowance, and tokens consumed today by model. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
+        "description": "Today's usage for the organization that owns the inference key: billing terms, plan, credit balance, daily allowance, the active invoice window for invoiced organizations, and tokens consumed today by model. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
         "security": [
           { "bearerAuth": [] },
           { "apiKeyAuth": [] }
@@ -310,11 +310,10 @@
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Usage" },
                 "example": {
-                  "billingMode": "subscription",
+                  "billingTerms": "prepaid",
                   "plan": {
                     "label": "Heavy",
                     "status": "active",
-                    "isUnlimitedComp": false,
                     "dailyAllowance": {
                       "basis": "credit",
                       "percent": 5.5,
@@ -325,6 +324,7 @@
                     "balanceDollars": 12.34,
                     "overageThisPeriodDollars": 0
                   },
+                  "invoice": null,
                   "models": [
                     {
                       "slug": "subconscious/glm-5.3-marathon",
@@ -365,7 +365,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "API key in the Authorization header. Management endpoints require a management key (`sk-mgmt-...`). GET /api/v1/usage requires an inference key (`sk-gw-...`)."
+        "description": "API key in the Authorization header. Management endpoints require a management key (`sk-mgmt-...`). GET /api/v1/models and GET /api/v1/usage require an inference key (`sk-gw-...`)."
       },
       "apiKeyAuth": {
         "type": "apiKey",
@@ -393,19 +393,19 @@
       },
       "Usage": {
         "type": "object",
-        "required": ["billingMode", "plan", "credits", "models"],
+        "required": ["billingTerms", "plan", "credits", "invoice", "models"],
         "properties": {
-          "billingMode": {
-            "type": ["string", "null"],
-            "description": "How the organization is billed, such as `subscription` or `prepaid`. Null when the organization has no plan."
+          "billingTerms": {
+            "type": "string",
+            "enum": ["prepaid", "invoiced"],
+            "description": "How the organization is billed. `prepaid` spends a wallet and plan allowance; `invoiced` bills a monthly net-30 invoice against a spend limit."
           },
           "plan": {
             "type": "object",
-            "required": ["label", "status", "isUnlimitedComp", "dailyAllowance"],
+            "required": ["label", "status", "dailyAllowance"],
             "properties": {
               "label": { "type": ["string", "null"], "description": "Plan name. Null when the organization has no plan." },
               "status": { "type": ["string", "null"], "description": "Plan status, such as `active`." },
-              "isUnlimitedComp": { "type": "boolean" },
               "dailyAllowance": {
                 "description": "Share of today's allowance. Null for unlimited plans and for organizations with no allowance. `percent` can exceed 100 when usage is past the allowance. `basis` is `credit` when the day is sized in credits, `tokens` when it is sized in tokens, and `unavailable` when a credit-billed read failed.",
                 "oneOf": [
@@ -417,18 +417,18 @@
             }
           },
           "credits": {
-            "type": "object",
-            "required": ["balanceDollars", "overageThisPeriodDollars"],
-            "properties": {
-              "balanceDollars": {
-                "type": ["number", "null"],
-                "description": "Spendable credit balance in dollars. Null when the balance cannot be read."
-              },
-              "overageThisPeriodDollars": {
-                "type": "number",
-                "description": "Overage for the current period, in dollars. Currently always 0."
-              }
-            }
+            "description": "Wallet balance and overage. Null for invoiced organizations, which have no wallet.",
+            "oneOf": [
+              { "$ref": "#/components/schemas/Credits" },
+              { "type": "null" }
+            ]
+          },
+          "invoice": {
+            "description": "The active invoice window. Null for prepaid organizations.",
+            "oneOf": [
+              { "$ref": "#/components/schemas/InvoiceUsage" },
+              { "type": "null" }
+            ]
           },
           "models": {
             "type": "array",
@@ -444,6 +444,44 @@
                 }
               }
             }
+          }
+        }
+      },
+      "Credits": {
+        "type": "object",
+        "required": ["balanceDollars", "overageThisPeriodDollars"],
+        "properties": {
+          "balanceDollars": {
+            "type": ["number", "null"],
+            "description": "Spendable credit balance in dollars. Null when the balance cannot be read."
+          },
+          "overageThisPeriodDollars": {
+            "type": "number",
+            "description": "Overage for the current period, in dollars. Currently always 0."
+          }
+        }
+      },
+      "InvoiceUsage": {
+        "type": "object",
+        "required": ["accruedThisPeriodDollars", "periodStart", "periodEnd", "limitDollars"],
+        "properties": {
+          "accruedThisPeriodDollars": {
+            "type": ["number", "null"],
+            "description": "Usage so far this period at the organization's rates, in dollars. Null when the read failed; never shown as zero."
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start of the current invoice period. Empty when the accrued read failed."
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End of the current invoice period. The spend limit resets here."
+          },
+          "limitDollars": {
+            "type": ["number", "null"],
+            "description": "The spend limit in dollars. Null when the organization has none enabled."
           }
         }
       },
