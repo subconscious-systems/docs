@@ -1,0 +1,23 @@
+---
+title: "Model discovery"
+description: "Discover available models, their capabilities, and their limits"
+icon: "search"
+---
+
+Subconscious serves model discovery next to inference. Models are deprecated, upgraded, and changed frequently. This tells you what models we offer, what their capabilities are, and how much they cost. As a partner, you can use this to update your provider catalog dynamically.
+
+There are two discovery surfaces.
+
+- `https://api.subconscious.dev/v1/models` (same base url as inference) gives you:
+  - Available models
+  - Model capabilities (modalities, context limits, etc.)
+  - Rate limits, per model
+  - See [List models](/api-reference/models) for the response reference and a downloadable JSON schema.
+- `https://platform.subconscious.dev/api/v1/models` gives you everything from above, plus:
+  - Pricing information
+  - Partner formats: [OpenRouter Provider V2](https://openrouter.ai/docs/guides/providers/integration) and [models.dev](https://models.dev/api.json)
+  - See [List models with pricing](/api-reference/platform-models) for the response reference and schemas for both formats.
+
+<Note>
+Both endpoints require an API key. We issue a dedicated integration credential to each partner. Ask for one before pointing a router or aggregator at these endpoints. The credential controls which models the feed lists and the rate limits it advertises per model, so a partner feed reflects real capacity.
+</Note>

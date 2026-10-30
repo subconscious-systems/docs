@@ -3,7 +3,7 @@
   "info": {
     "title": "Subconscious platform API",
     "version": "1.0.0",
-    "description": "Management keys and organization usage on the Subconscious platform. Inference stays on https://api.subconscious.dev/v1."
+    "description": "Inference-key management, priced model discovery, and organization usage on the Subconscious platform. Inference stays on https://api.subconscious.dev/v1."
   },
   "servers": [
     {
@@ -287,11 +287,239 @@
         }
       }
     },
+    "/api/v1/models":     {
+      "get": {
+        "operationId": "listModelsWithPricing",
+        "summary": "List models with pricing",
+        "description": "Returns the caller's model catalog with per-token prices. The platform reads the gateway catalog for the same key and adds the prices the key pays. A model is listed only when the key can invoke it, the platform has a display row for it, and it carries a price. The default format is OpenRouter Provider V2 model documents. Request `?format=models.dev` for a models.dev provider document. Prices are USD per token in the default format, and USD per million tokens in the models.dev format. Both formats carry the caller's enforced rate limits per model: the models.dev format repeats them under `metadata.rate_limits`, and the OpenRouter format declares token throughput as capacity on the text input modality and requests per minute as capacity at the document root, the schema's only home for request-scoped limits. A model with no configured limits omits these fields. GET https://api.subconscious.dev/v1/models stays the canonical source. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "models.dev"
+              ]
+            },
+            "description": "Serialization format. Omit for OpenRouter Provider V2. `models.dev` returns a models.dev provider document."
+          }
+        ],
+        "x-codeSamples": [
+          {
+            "lang": "bash",
+            "label": "cURL",
+            "source": "curl https://platform.subconscious.dev/api/v1/models \\\n  -H \"Authorization: Bearer sk-gw-...\""
+          },
+          {
+            "lang": "bash",
+            "label": "models.dev",
+            "source": "curl \"https://platform.subconscious.dev/api/v1/models?format=models.dev\" \\\n  -H \"Authorization: Bearer sk-gw-...\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Priced model catalog in the requested format.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/OpenRouterModelList"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ModelsDevProvider"
+                    }
+                  ]
+                },
+                "examples": {
+                  "openrouter": {
+                    "summary": "Default format: OpenRouter Provider V2",
+                    "value": {
+                      "data": [
+                        {
+                          "schema_version": "2.4",
+                          "id": "subconscious/glm-5.3-marathon",
+                          "name": "Subconscious: GLM 5.3 Marathon",
+                          "description": "Flagship reasoning model on OrangeLine.",
+                          "created": 1762060800,
+                          "input_modalities": [
+                            {
+                              "type": "text",
+                              "supported_inputs": {
+                                "max_context_length": {
+                                  "value": 200000,
+                                  "unit": "token"
+                                }
+                              },
+                              "capacity": [
+                                {
+                                  "type": "prompt",
+                                  "unit": "token",
+                                  "per": "minute",
+                                  "value": 2000000
+                                }
+                              ],
+                              "pricing": [
+                                {
+                                  "type": "prompt",
+                                  "unit": "token",
+                                  "cost_usd": "0.0000014"
+                                },
+                                {
+                                  "type": "cached_prompt",
+                                  "unit": "token",
+                                  "cost_usd": "0.00000026"
+                                }
+                              ]
+                            }
+                          ],
+                          "output_modalities": [
+                            {
+                              "type": "text",
+                              "max_length": {
+                                "value": 32000,
+                                "unit": "token"
+                              },
+                              "streaming": true,
+                              "supported_parameters": {
+                                "temperature": {
+                                  "type": "range",
+                                  "min": 0,
+                                  "max": 2
+                                },
+                                "max_tokens": {
+                                  "type": "integer",
+                                  "min": 1,
+                                  "max": 32000,
+                                  "unit": "token"
+                                }
+                              },
+                              "pricing": [
+                                {
+                                  "type": "completion",
+                                  "unit": "token",
+                                  "cost_usd": "0.0000044"
+                                }
+                              ]
+                            }
+                          ],
+                          "capacity": [
+                            {
+                              "type": "request",
+                              "unit": "request",
+                              "per": "minute",
+                              "value": 600
+                            }
+                          ],
+                          "openrouter": {
+                            "slug": "subconscious/glm-5.3-marathon"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "modelsDev": {
+                    "summary": "?format=models.dev",
+                    "value": {
+                      "subconscious": {
+                        "id": "subconscious",
+                        "name": "Subconscious",
+                        "api": "https://api.subconscious.dev/v1",
+                        "models": {
+                          "subconscious/glm-5.3-marathon": {
+                            "id": "subconscious/glm-5.3-marathon",
+                            "name": "GLM 5.3 Marathon",
+                            "description": "Fast general-purpose model for coding and agentic work.",
+                            "reasoning": true,
+                            "tool_call": true,
+                            "temperature": true,
+                            "modalities": {
+                              "input": [
+                                "text"
+                              ],
+                              "output": [
+                                "text"
+                              ]
+                            },
+                            "limit": {
+                              "context": 200000,
+                              "output": 32000
+                            },
+                            "cost": {
+                              "input": 0.4,
+                              "output": 1.6,
+                              "cache_read": 0.1
+                            },
+                            "status": "active",
+                            "metadata": {
+                              "rate_limits": {
+                                "requests_per_minute": 600,
+                                "tokens_per_minute": 2000000
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The `format` value is not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Unsupported format \"litellm\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, inactive, or non-inference API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The gateway catalog could not be read. The feed fails rather than return a partial catalog.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Model discovery is temporarily unavailable"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/usage": {
       "get": {
         "operationId": "getUsage",
         "summary": "Get usage",
-        "description": "Today's usage for the organization that owns the inference key: plan, credit balance, daily allowance, and tokens consumed today by model. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
+        "description": "Today's usage for the organization that owns the inference key: billing terms, plan, credit balance, the active invoice window for invoiced organizations, and tokens consumed today by model. The response has two shapes. A prepaid organization spends a wallet and plan allowance, so it reports `credits` with a daily allowance percentage, and `invoice` is null. An invoiced organization bills a monthly net-30 invoice against a spend limit, so it reports `invoice` with the period window, accrued spend at its rates, and its spend limit, and `credits` and the daily allowance are null. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
         "security": [
           { "bearerAuth": [] },
           { "apiKeyAuth": [] }
@@ -305,32 +533,61 @@
         ],
         "responses": {
           "200": {
-            "description": "Organization usage snapshot.",
+            "description": "Organization usage snapshot. Prepaid organizations carry `credits` and a daily allowance; invoiced organizations carry the `invoice` window instead.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Usage" },
-                "example": {
-                  "billingMode": "subscription",
-                  "plan": {
-                    "label": "Heavy",
-                    "status": "active",
-                    "isUnlimitedComp": false,
-                    "dailyAllowance": {
-                      "basis": "credit",
-                      "percent": 5.5,
-                      "resetAt": "2026-09-24T00:00:00.000Z"
+                "examples": {
+                  "prepaid": {
+                    "summary": "Prepaid organization",
+                    "value": {
+                      "billingTerms": "prepaid",
+                      "plan": {
+                        "label": "Heavy",
+                        "status": "active",
+                        "dailyAllowance": {
+                          "basis": "credit",
+                          "percent": 5.5,
+                          "resetAt": "2026-09-24T00:00:00.000Z"
+                        }
+                      },
+                      "credits": {
+                        "balanceDollars": 12.34,
+                        "overageThisPeriodDollars": 0
+                      },
+                      "invoice": null,
+                      "models": [
+                        {
+                          "slug": "subconscious/glm-5.3-marathon",
+                          "consumedToday": 44500000
+                        }
+                      ]
                     }
                   },
-                  "credits": {
-                    "balanceDollars": 12.34,
-                    "overageThisPeriodDollars": 0
-                  },
-                  "models": [
-                    {
-                      "slug": "subconscious/glm-5.3-marathon",
-                      "consumedToday": 44500000
+                  "invoiced": {
+                    "summary": "Invoiced organization",
+                    "value": {
+                      "billingTerms": "invoiced",
+                      "plan": {
+                        "label": null,
+                        "status": null,
+                        "dailyAllowance": null
+                      },
+                      "credits": null,
+                      "invoice": {
+                        "accruedThisPeriodDollars": 1234.56,
+                        "periodStart": "2026-10-01T00:00:00.000Z",
+                        "periodEnd": "2026-11-01T00:00:00.000Z",
+                        "limitDollars": 5000
+                      },
+                      "models": [
+                        {
+                          "slug": "subconscious/glm-5.3-marathon",
+                          "consumedToday": 44500000
+                        }
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -365,7 +622,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "API key in the Authorization header. Management endpoints require a management key (`sk-mgmt-...`). GET /api/v1/usage requires an inference key (`sk-gw-...`)."
+        "description": "API key in the Authorization header. Management endpoints require a management key (`sk-mgmt-...`). GET /api/v1/models and GET /api/v1/usage require an inference key (`sk-gw-...`)."
       },
       "apiKeyAuth": {
         "type": "apiKey",
@@ -384,6 +641,519 @@
       }
     },
     "schemas": {
+      "OpenRouterModelList":       {
+        "type": "object",
+        "title": "OpenRouter Provider V2",
+        "description": "Model documents, one entry per priced model. `cost_usd` is USD per unit, which is per token when `unit` is `token`.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterModelDocument"
+            }
+          }
+        }
+      },
+      "OpenRouterModelDocument":       {
+        "type": "object",
+        "required": [
+          "schema_version",
+          "id",
+          "name",
+          "created",
+          "input_modalities",
+          "output_modalities",
+          "openrouter"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "enum": [
+              "2.4"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "The model id to send in inference requests.",
+            "example": "subconscious/glm-5.3-marathon"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name, prefixed with the provider.",
+            "example": "Subconscious: GLM 5.3 Marathon"
+          },
+          "description": {
+            "type": "string"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "input_modalities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "image"
+                  ]
+                },
+                "supported_inputs": {
+                  "type": "object"
+                },
+                "capacity": {
+                  "type": "array",
+                  "description": "Token throughput the caller may send to this model per minute. Omitted when no token limit is configured or the limit is zero.",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterInputCapacityEntry"
+                  }
+                },
+                "pricing": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterPricingEntry"
+                  }
+                }
+              }
+            }
+          },
+          "output_modalities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "supported_parameters"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text"
+                  ]
+                },
+                "max_length": {
+                  "$ref": "#/components/schemas/TokenLimit"
+                },
+                "streaming": {
+                  "type": "boolean"
+                },
+                "supported_parameters": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                },
+                "pricing": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterPricingEntry"
+                  }
+                }
+              }
+            }
+          },
+          "openrouter": {
+            "type": "object",
+            "required": [
+              "slug"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string"
+              }
+            }
+          },
+          "capacity": {
+            "type": "array",
+            "description": "Request-scoped limits for this model. The document root is the schema's only home for them. Omitted when no request limit is configured.",
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterRequestCapacityEntry"
+            }
+          }
+        },
+        "example": {
+          "schema_version": "2.4",
+          "id": "subconscious/glm-5.3-marathon",
+          "name": "Subconscious: GLM 5.3 Marathon",
+          "description": "Flagship reasoning model on OrangeLine.",
+          "created": 1762060800,
+          "input_modalities": [
+            {
+              "type": "text",
+              "supported_inputs": {
+                "max_context_length": {
+                  "value": 200000,
+                  "unit": "token"
+                }
+              },
+              "capacity": [
+                {
+                  "type": "prompt",
+                  "unit": "token",
+                  "per": "minute",
+                  "value": 2000000
+                }
+              ],
+              "pricing": [
+                {
+                  "type": "prompt",
+                  "unit": "token",
+                  "cost_usd": "0.0000014"
+                },
+                {
+                  "type": "cached_prompt",
+                  "unit": "token",
+                  "cost_usd": "0.00000026"
+                }
+              ]
+            }
+          ],
+          "output_modalities": [
+            {
+              "type": "text",
+              "max_length": {
+                "value": 32000,
+                "unit": "token"
+              },
+              "streaming": true,
+              "supported_parameters": {
+                "temperature": {
+                  "type": "range",
+                  "min": 0,
+                  "max": 2
+                },
+                "max_tokens": {
+                  "type": "integer",
+                  "min": 1,
+                  "max": 32000,
+                  "unit": "token"
+                }
+              },
+              "pricing": [
+                {
+                  "type": "completion",
+                  "unit": "token",
+                  "cost_usd": "0.0000044"
+                }
+              ]
+            }
+          ],
+          "openrouter": {
+            "slug": "subconscious/glm-5.3-marathon"
+          },
+          "capacity": [
+            {
+              "type": "request",
+              "unit": "request",
+              "per": "minute",
+              "value": 600
+            }
+          ]
+        }
+      },
+      "OpenRouterInputCapacityEntry":       {
+        "type": "object",
+        "description": "Token throughput the caller may send to this model per minute.",
+        "required": [
+          "type",
+          "unit",
+          "per",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "prompt"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token"
+            ]
+          },
+          "per": {
+            "type": "string",
+            "enum": [
+              "minute"
+            ]
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "OpenRouterRequestCapacityEntry":       {
+        "type": "object",
+        "description": "Requests per minute the caller may send to this model.",
+        "required": [
+          "type",
+          "unit",
+          "per",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "request"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "request"
+            ]
+          },
+          "per": {
+            "type": "string",
+            "enum": [
+              "minute"
+            ]
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "TokenLimit":       {
+        "type": "object",
+        "required": [
+          "value",
+          "unit"
+        ],
+        "properties": {
+          "value": {
+            "type": "integer"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token"
+            ]
+          }
+        }
+      },
+      "OpenRouterPricingEntry":       {
+        "type": "object",
+        "description": "One price for one thing the caller consumes. `prompt` and `cached_prompt` sit under an input modality. `completion` sits under an output modality.",
+        "required": [
+          "type",
+          "unit",
+          "cost_usd"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "prompt",
+              "cached_prompt",
+              "completion"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token",
+              "image",
+              "megapixel",
+              "second",
+              "character"
+            ]
+          },
+          "cost_usd": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d+)?$",
+            "description": "Non-negative decimal number string in USD per unit.",
+            "example": "0.0000014"
+          }
+        }
+      },
+      "ModelsDevProvider":       {
+        "type": "object",
+        "title": "models.dev",
+        "description": "A provider map keyed by model id, following the models.dev catalog shape.",
+        "properties": {
+          "subconscious": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "api",
+              "models"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "subconscious"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "api": {
+                "type": "string",
+                "description": "Inference base URL for this provider."
+              },
+              "models": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ModelsDevModel"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ModelsDevModel":       {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "cost"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "reasoning": {
+            "type": "boolean"
+          },
+          "reasoning_options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "values"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "effort"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "tool_call": {
+            "type": "boolean"
+          },
+          "structured_output": {
+            "type": "boolean"
+          },
+          "temperature": {
+            "type": "boolean"
+          },
+          "modalities": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "output": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "limit": {
+            "type": "object",
+            "properties": {
+              "context": {
+                "type": "integer"
+              },
+              "output": {
+                "type": "integer"
+              }
+            }
+          },
+          "cost": {
+            "type": "object",
+            "description": "USD per million tokens.",
+            "required": [
+              "input",
+              "output"
+            ],
+            "properties": {
+              "input": {
+                "type": "number"
+              },
+              "output": {
+                "type": "number"
+              },
+              "cache_read": {
+                "type": "number"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Model lifecycle from the gateway catalog.",
+            "enum": [
+              "active",
+              "deprecated",
+              "retired"
+            ]
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Extension data keyed for the caller. The platform repeats the caller's enforced rate limits here.",
+            "properties": {
+              "rate_limits": {
+                "$ref": "#/components/schemas/RateLimitSet"
+              }
+            }
+          }
+        }
+      },
+      "RateLimitSet": {
+        "type": "object",
+        "description": "The strictest enforced limit per kind and window for this caller on this model. Absent when no limit is configured; an absent field means no limit of that kind and window is enforced.",
+        "properties": {
+          "requests_per_minute": { "type": "integer" },
+          "requests_per_hour": { "type": "integer" },
+          "requests_per_day": { "type": "integer" },
+          "requests_per_month": { "type": "integer" },
+          "tokens_per_minute": { "type": "integer" },
+          "tokens_per_hour": { "type": "integer" },
+          "tokens_per_day": { "type": "integer" },
+          "tokens_per_month": { "type": "integer" }
+        }
+      },
       "Error": {
         "type": "object",
         "required": ["error"],
@@ -393,21 +1163,21 @@
       },
       "Usage": {
         "type": "object",
-        "required": ["billingMode", "plan", "credits", "models"],
+        "required": ["billingTerms", "plan", "credits", "invoice", "models"],
         "properties": {
-          "billingMode": {
-            "type": ["string", "null"],
-            "description": "How the organization is billed, such as `subscription` or `prepaid`. Null when the organization has no plan."
+          "billingTerms": {
+            "type": "string",
+            "enum": ["prepaid", "invoiced"],
+            "description": "How the organization is billed. `prepaid` spends a wallet and plan allowance; `invoiced` bills a monthly net-30 invoice against a spend limit."
           },
           "plan": {
             "type": "object",
-            "required": ["label", "status", "isUnlimitedComp", "dailyAllowance"],
+            "required": ["label", "status", "dailyAllowance"],
             "properties": {
               "label": { "type": ["string", "null"], "description": "Plan name. Null when the organization has no plan." },
               "status": { "type": ["string", "null"], "description": "Plan status, such as `active`." },
-              "isUnlimitedComp": { "type": "boolean" },
               "dailyAllowance": {
-                "description": "Share of today's allowance. Null for unlimited plans and for organizations with no allowance. `percent` can exceed 100 when usage is past the allowance. `basis` is `credit` when the day is sized in credits, `tokens` when it is sized in tokens, and `unavailable` when a credit-billed read failed.",
+                "description": "Share of today's allowance. Prepaid organizations only. Null for invoiced organizations, which bill against a spend limit rather than a daily grant, and for organizations with no allowance. `percent` can exceed 100 when usage is past the allowance. `basis` is `credit` when the day is sized in credits, `tokens` when it is sized in tokens, and `unavailable` when a credit-billed read failed.",
                 "oneOf": [
                   { "$ref": "#/components/schemas/CreditOrTokenAllowance" },
                   { "$ref": "#/components/schemas/UnavailableAllowance" },
@@ -417,18 +1187,18 @@
             }
           },
           "credits": {
-            "type": "object",
-            "required": ["balanceDollars", "overageThisPeriodDollars"],
-            "properties": {
-              "balanceDollars": {
-                "type": ["number", "null"],
-                "description": "Spendable credit balance in dollars. Null when the balance cannot be read."
-              },
-              "overageThisPeriodDollars": {
-                "type": "number",
-                "description": "Overage for the current period, in dollars. Currently always 0."
-              }
-            }
+            "description": "Wallet balance and overage. Null for invoiced organizations, which have no wallet.",
+            "oneOf": [
+              { "$ref": "#/components/schemas/Credits" },
+              { "type": "null" }
+            ]
+          },
+          "invoice": {
+            "description": "The active invoice window. Null for prepaid organizations.",
+            "oneOf": [
+              { "$ref": "#/components/schemas/InvoiceUsage" },
+              { "type": "null" }
+            ]
           },
           "models": {
             "type": "array",
@@ -444,6 +1214,44 @@
                 }
               }
             }
+          }
+        }
+      },
+      "Credits": {
+        "type": "object",
+        "required": ["balanceDollars", "overageThisPeriodDollars"],
+        "properties": {
+          "balanceDollars": {
+            "type": ["number", "null"],
+            "description": "Spendable credit balance in dollars. Null when the balance cannot be read."
+          },
+          "overageThisPeriodDollars": {
+            "type": "number",
+            "description": "Overage for the current period, in dollars. Currently always 0."
+          }
+        }
+      },
+      "InvoiceUsage": {
+        "type": "object",
+        "required": ["accruedThisPeriodDollars", "periodStart", "periodEnd", "limitDollars"],
+        "properties": {
+          "accruedThisPeriodDollars": {
+            "type": ["number", "null"],
+            "description": "Usage so far this period at the organization's rates, in dollars. Null when the read failed; never shown as zero."
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Start of the current invoice period. Empty when the accrued read failed."
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "description": "End of the current invoice period. The spend limit resets here."
+          },
+          "limitDollars": {
+            "type": ["number", "null"],
+            "description": "The spend limit in dollars. Null when the organization has none enabled."
           }
         }
       },
