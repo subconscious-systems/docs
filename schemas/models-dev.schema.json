@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.subconscious.dev/schemas/models-dev.schema.json",
+  "title": "Subconscious models.dev provider document",
+  "description": "JSON Schema for the body of GET https://platform.subconscious.dev/api/v1/models?format=models.dev. The document is a provider map keyed by provider id, following the models.dev catalog shape. This schema is not strict. Every object accepts unknown fields and no field is required, because models.dev adds fields over time. Prices are USD per million tokens.",
+  "type": "object",
+  "additionalProperties": { "$ref": "#/$defs/provider" },
+  "$defs": {
+    "provider": {
+      "type": "object",
+      "description": "A provider entry. Subconscious serves one provider, keyed \"subconscious\".",
+      "properties": {
+        "id": {
+          "type": "string",
+          "examples": ["subconscious"]
+        },
+        "name": {
+          "type": "string",
+          "examples": ["Subconscious"]
+        },
+        "api": {
+          "type": "string",
+          "description": "Inference base URL for this provider.",
+          "examples": ["https://api.subconscious.dev/v1"]
+        },
+        "models": {
+          "type": "object",
+          "description": "Model entries keyed by model id.",
+          "additionalProperties": { "$ref": "#/$defs/model" }
+        }
+      },
+      "additionalProperties": true
+    },
+    "model": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The model id to send in inference requests.",
+          "examples": ["subconscious/glm-5.3-marathon"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "reasoning": {
+          "type": "boolean"
+        },
+        "reasoning_options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Reasoning control type. New values may appear.",
+                "examples": ["effort"]
+              },
+              "values": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "tool_call": {
+          "type": "boolean"
+        },
+        "structured_output": {
+          "type": "boolean"
+        },
+        "temperature": {
+          "type": "boolean"
+        },
+        "modalities": {
+          "type": "object",
+          "properties": {
+            "input": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "text, image, audio, video, or pdf. New values may appear.",
+                "examples": ["text", "image", "audio", "video", "pdf"]
+              }
+            },
+            "output": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": "text, image, audio, video, or pdf. New values may appear.",
+                "examples": ["text", "image", "audio", "video", "pdf"]
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "limit": {
+          "type": "object",
+          "properties": {
+            "context": {
+              "type": "integer",
+              "description": "Context window in tokens."
+            },
+            "output": {
+              "type": "integer",
+              "description": "Maximum completion tokens per request."
+            }
+          },
+          "additionalProperties": true
+        },
+        "cost": {
+          "type": "object",
+          "description": "Price in USD per million tokens.",
+          "properties": {
+            "input": { "type": "number" },
+            "output": { "type": "number" },
+            "cache_read": { "type": "number" }
+          },
+          "additionalProperties": true
+        },
+        "status": {
+          "type": "string",
+          "description": "Lifecycle status from the gateway catalog. New values may appear.",
+          "examples": ["active", "deprecated", "retired"]
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

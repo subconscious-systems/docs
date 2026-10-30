@@ -711,7 +711,7 @@
     "/models": {
       "get": {
         "summary": "List models available to this API key",
-        "description": "Returns the canonical model catalog for the authenticated caller, filtered by the key's model access. Each entry describes the model's lifecycle, limits, modalities, capabilities, supported request wires, and deployment facts. The top-level rate_limits map reports the caller's enforced limits, keyed by the reserved all-models key or a model id.",
+        "description": "Returns the model catalog for the caller. Each entry describes the model's lifecycle, limits, modalities, capabilities, supported request wires, and deployment facts.",
         "operationId": "listModels",
         "security": [
           {
@@ -738,6 +738,71 @@
             "description": "The caller's model catalog",
             "content": {
               "application/json": {
+                "example": {
+                  "object": "list",
+                  "data": [
+                    {
+                      "schema_version": "1",
+                      "id": "subconscious/glm-5.3-marathon",
+                      "object": "model",
+                      "created": 1762060800,
+                      "owned_by": "subconscious",
+                      "name": "GLM 5.3 Marathon",
+                      "lifecycle": {
+                        "status": "active"
+                      },
+                      "limits": {
+                        "context_length": 200000,
+                        "max_output_tokens": 32000
+                      },
+                      "modalities": {
+                        "input": [
+                          "text"
+                        ],
+                        "output": [
+                          "text"
+                        ]
+                      },
+                      "capabilities": {
+                        "reasoning": {
+                          "supported": true,
+                          "efforts": [
+                            "low",
+                            "medium",
+                            "high"
+                          ]
+                        },
+                        "tools": true,
+                        "structured_output": true,
+                        "streaming": true,
+                        "temperature": true
+                      },
+                      "api": {
+                        "chat_completions": true,
+                        "responses": true,
+                        "anthropic_messages": true
+                      },
+                      "deployment": {
+                        "tokenizer": "glm",
+                        "ready": true
+                      },
+                      "rate_limits": {
+                        "requests_per_minute": 120,
+                        "tokens_per_minute": 400000
+                      }
+                    }
+                  ],
+                  "rate_limits": {
+                    "all": {
+                      "requests_per_minute": 600,
+                      "tokens_per_minute": 2000000
+                    },
+                    "subconscious/glm-5.3-marathon": {
+                      "requests_per_minute": 120,
+                      "tokens_per_minute": 400000
+                    }
+                  }
+                },
                 "schema": {
                   "type": "object",
                   "properties": {
@@ -945,6 +1010,16 @@
                           "tokens_per_month": {
                             "type": "integer"
                           }
+                        }
+                      },
+                      "example": {
+                        "all": {
+                          "requests_per_minute": 600,
+                          "tokens_per_minute": 2000000
+                        },
+                        "subconscious/glm-5.3-marathon": {
+                          "requests_per_minute": 120,
+                          "tokens_per_minute": 400000
                         }
                       }
                     }

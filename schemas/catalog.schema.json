@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docs.subconscious.dev/schemas/catalog.schema.json",
+  "title": "Subconscious gateway model catalog",
+  "description": "JSON Schema for the body of GET https://api.subconscious.dev/v1/models. This schema is not strict. Every object accepts unknown fields, no field is required, and every enumerated value is documented by example rather than enforced. Parse defensively. Fields and enum members are added without notice, and an absent field means the gateway does not know the value, never that the value is unsupported.",
+  "type": "object",
+  "properties": {
+    "object": {
+      "type": "string",
+      "description": "Always \"list\".",
+      "examples": ["list"]
+    },
+    "data": {
+      "type": "array",
+      "description": "The models this credential can invoke.",
+      "items": { "$ref": "#/$defs/model" }
+    },
+    "rate_limits": {
+      "type": "object",
+      "description": "Limits this caller is subject to, keyed by the reserved \"all\" key or by a model id. A key of \"all\" applies to every model. When a model id also has an entry, the stricter value governs that model.",
+      "additionalProperties": { "$ref": "#/$defs/rate_limit_set" }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "model": {
+      "type": "object",
+      "description": "One catalog entry.",
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "description": "Entry schema version. Treat an unknown value as compatible.",
+          "examples": ["1"]
+        },
+        "id": {
+          "type": "string",
+          "description": "The model id to send in inference requests.",
+          "examples": ["subconscious/glm-5.3-marathon"]
+        },
+        "object": {
+          "type": "string",
+          "examples": ["model"]
+        },
+        "created": {
+          "type": "integer",
+          "description": "Unix timestamp in seconds."
+        },
+        "owned_by": {
+          "type": "string",
+          "examples": ["subconscious"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name for UIs."
+        },
+        "lifecycle": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "description": "One of active, deprecated, or retired. New values may appear.",
+              "examples": ["active", "deprecated", "retired"]
+            },
+            "deprecation_date": {
+              "type": "string",
+              "description": "Calendar date the model stops being served, as YYYY-MM-DD. The model serves until the end of that date, UTC.",
+              "examples": ["2026-11-05"]
+            },
+            "replacement": {
+              "type": "string",
+              "description": "Model id to migrate to."
+            }
+          },
+          "additionalProperties": true
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "context_length": {
+              "type": "integer",
+              "description": "Context window in tokens."
+            },
+            "max_output_tokens": {
+              "type": "integer",
+              "description": "Maximum completion tokens per request."
+            }
+          },
+          "additionalProperties": true
+        },
+        "modalities": {
+          "type": "object",
+          "properties": {
+            "input": { "$ref": "#/$defs/modality_list" },
+            "output": { "$ref": "#/$defs/modality_list" }
+          },
+          "additionalProperties": true
+        },
+        "capabilities": {
+          "type": "object",
+          "description": "Request features the model supports. An absent field means unknown, not unsupported.",
+          "properties": {
+            "reasoning": {
+              "type": "object",
+              "properties": {
+                "supported": { "type": "boolean" },
+                "efforts": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "examples": ["low", "medium", "high"]
+                  }
+                }
+              },
+              "additionalProperties": true
+            },
+            "tools": { "type": "boolean" },
+            "structured_output": { "type": "boolean" },
+            "streaming": { "type": "boolean" },
+            "temperature": { "type": "boolean" }
+          },
+          "additionalProperties": true
+        },
+        "api": {
+          "type": "object",
+          "description": "Request wires the gateway accepts for this model.",
+          "properties": {
+            "chat_completions": { "type": "boolean" },
+            "responses": { "type": "boolean" },
+            "anthropic_messages": { "type": "boolean" }
+          },
+          "additionalProperties": true
+        },
+        "deployment": {
+          "type": "object",
+          "description": "Deployment facts for the model.",
+          "properties": {
+            "quantization": { "type": "string" },
+            "tokenizer": { "type": "string" },
+            "ready": {
+              "type": "boolean",
+              "description": "Runtime readiness from live health probes. Absent when no probe data exists."
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "modality_list": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": "One of text, image, audio, video, or file. New values may appear.",
+        "examples": ["text", "image", "audio", "video", "file"]
+      }
+    },
+    "rate_limit_set": {
+      "type": "object",
+      "description": "The strictest limit enforced for each kind and window. An absent field means no limit of that kind is enforced.",
+      "properties": {
+        "requests_per_minute": { "type": "integer" },
+        "requests_per_hour": { "type": "integer" },
+        "requests_per_day": { "type": "integer" },
+        "requests_per_month": { "type": "integer" },
+        "tokens_per_minute": { "type": "integer" },
+        "tokens_per_hour": { "type": "integer" },
+        "tokens_per_day": { "type": "integer" },
+        "tokens_per_month": { "type": "integer" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

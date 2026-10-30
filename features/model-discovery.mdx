@@ -4,101 +4,20 @@ description: "Discover available models, their capabilities, and their limits"
 icon: "search"
 ---
 
-Subconscious serves model discovery next to inference, at the same base URL. Point any OpenAI-compatible client at `https://api.subconscious.dev/v1` and its model listing works without extra configuration. Command Code and similar agents derive the models endpoint from the inference base URL, so BYOK setup needs no special handling.
+Subconscious serves model discovery next to inference. Models are deprecated, upgraded, and changed frequently. This tells you what models we offer, what their capabilities are, and how much they cost. As a partner, you can use this to update your provider catalog dynamically.
 
-There are two discovery surfaces. The gateway answers what a credential can invoke and under what limits. The platform adds pricing and serializes partner formats.
+There are two discovery surfaces.
+
+- `https://api.subconscious.dev/v1/models` (same base url as inference) gives you:
+  - Available models
+  - Model capabilities (modalities, context limits, etc.)
+  - Rate limits
+  - See [List models](/api-reference/models) for the response reference and a downloadable JSON schema.
+- `https://platform.subconscious.dev/api/v1/models` gives you everything from above, plus:
+  - Pricing information
+  - Partner formats: [OpenRouter Provider V2](https://openrouter.ai/docs/guides/providers/integration) and [models.dev](https://models.dev/api.json)
+  - See [List models with pricing](/api-reference/platform-models) for the response reference and schemas for both formats.
 
 <Note>
 Both endpoints require an API key. We issue a dedicated integration credential to each partner. Ask for one before pointing a router or aggregator at these endpoints. The credential controls which models the feed lists and what rate limits it advertises, so a partner feed reflects real capacity.
 </Note>
-
-## The gateway catalog
-
-```
-GET https://api.subconscious.dev/v1/models
-Authorization: Bearer <SUBCONSCIOUS_API_KEY>
-```
-
-The response lists only the models the credential can actually invoke. Each entry carries the model's identity, lifecycle, limits, modalities, capabilities, and supported request wires. The top-level `rate_limits` map reports the limits the gateway enforces for this caller, keyed by `"all"` or a model id. A limit keyed by `"all"` applies to every model in the list. When a model id has its own entry, the stricter value governs that model.
-
-```json
-{
-  "object": "list",
-  "data": [
-    {
-      "schema_version": "1",
-      "id": "subconscious/glm-5.3-marathon",
-      "object": "model",
-      "created": 1762060800,
-      "owned_by": "subconscious",
-      "name": "GLM 5.3 Marathon",
-      "lifecycle": { "status": "active" },
-      "limits": { "context_length": 200000, "max_output_tokens": 32000 },
-      "modalities": { "input": ["text"], "output": ["text"] },
-      "capabilities": {
-        "reasoning": { "supported": true, "efforts": ["low", "medium", "high"] },
-        "tools": true,
-        "structured_output": true,
-        "streaming": true,
-        "temperature": true
-      },
-      "api": {
-        "chat_completions": true,
-        "responses": true,
-        "anthropic_messages": true
-      },
-      "deployment": { "tokenizer": "glm", "ready": true }
-    }
-  ],
-  "rate_limits": {
-    "all": {
-      "requests_per_minute": 600,
-      "requests_per_day": 100000,
-      "tokens_per_minute": 2000000
-    }
-  }
-}
-```
-
-### Field semantics
-
-| Field | Meaning |
-|---|---|
-| `id` | The model id to send in inference requests. |
-| `name` | Display name for UIs. |
-| `lifecycle.status` | `active`, `deprecated`, or `retired`. |
-| `lifecycle.deprecation_date` | Calendar date the model stops being served, as YYYY-MM-DD. The model serves until the end of that date, UTC. |
-| `lifecycle.replacement` | Model id to migrate to. Present on deprecated and retired models. |
-| `limits.context_length` | Context window in tokens. |
-| `limits.max_output_tokens` | Maximum completion tokens per request. |
-| `modalities.input` / `modalities.output` | Supported modalities: `text`, `image`, `audio`, `video`, `file`. |
-| `capabilities` | Reasoning, tools, structured output, streaming, and generation controls. An absent field means unknown, not unsupported. |
-| `api` | Which request wires the gateway accepts for this model: Chat Completions, Responses, and Anthropic Messages. |
-| `deployment.ready` | Runtime readiness from live health probes. Absent when no probe data exists. |
-
-### Deprecation and retirement
-
-A deprecated model keeps serving until its `deprecation_date`. Requests against it keep working during that window, so existing integrations do not break on the day we announce a deprecation. Read `lifecycle.replacement` and switch your model id before the date. A retired model has passed its date. It may still serve if your credential retains access, but treat any retirement as final and migrate.
-
-We recommend routers surface `lifecycle.status` in their model cards and hide deprecated models from new-session defaults while keeping them invocable for existing sessions.
-
-## The platform catalog
-
-```
-GET https://platform.subconscious.dev/api/v1/models
-Authorization: Bearer <SUBCONSCIOUS_API_KEY>
-```
-
-The platform calls the gateway catalog for your credential, adds pricing and commercial metadata, and serializes it for the format you request. The default format is the OpenRouter Provider V2 model document. This is the feed OpenRouter consumes.
-
-```
-GET https://platform.subconscious.dev/api/v1/models?format=models.dev
-```
-
-The `models.dev` format returns a provider map keyed by model id, following the models.dev catalog shape.
-
-Both responses are scoped to the credential. A feed for a partner integration credential lists the models and capacity allocated to that partnership.
-
-## Choose the right endpoint
-
-Use the gateway endpoint when you need what inference needs: model ids, capabilities, and limits. Use the platform endpoint when you need pricing or a partner schema such as OpenRouter Provider V2. The two never disagree on technical facts, because the platform builds its catalog from the gateway response.

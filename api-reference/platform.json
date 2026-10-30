@@ -287,6 +287,212 @@
         }
       }
     },
+    "/api/v1/models":     {
+      "get": {
+        "operationId": "listModelsWithPricing",
+        "summary": "List models with pricing",
+        "description": "Returns the caller's model catalog with per-token prices. The platform reads the gateway catalog for the same key and adds the prices the key pays. A model is listed only when the key can invoke it, the platform has a display row for it, and it carries a price. The default format is OpenRouter Provider V2 model documents. Request `?format=models.dev` for a models.dev provider document. Prices are USD per token in the default format, and USD per million tokens in the models.dev format. Neither partner format carries rate limits, because both upstream schemas reject unknown fields. Call GET https://api.subconscious.dev/v1/models for the caller's enforced limits. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "models.dev"
+              ]
+            },
+            "description": "Serialization format. Omit for OpenRouter Provider V2. `models.dev` returns a models.dev provider document."
+          }
+        ],
+        "x-codeSamples": [
+          {
+            "lang": "bash",
+            "label": "cURL",
+            "source": "curl https://platform.subconscious.dev/api/v1/models \\\n  -H \"Authorization: Bearer sk-gw-...\""
+          },
+          {
+            "lang": "bash",
+            "label": "models.dev",
+            "source": "curl \"https://platform.subconscious.dev/api/v1/models?format=models.dev\" \\\n  -H \"Authorization: Bearer sk-gw-...\""
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Priced model catalog in the requested format.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/OpenRouterModelList"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ModelsDevProvider"
+                    }
+                  ]
+                },
+                "examples": {
+                  "openrouter": {
+                    "summary": "Default format: OpenRouter Provider V2",
+                    "value": {
+                      "data": [
+                        {
+                          "schema_version": "2.4",
+                          "id": "subconscious/glm-5.3-marathon",
+                          "name": "Subconscious: GLM 5.3 Marathon",
+                          "description": "Flagship reasoning model on OrangeLine.",
+                          "created": 1762060800,
+                          "input_modalities": [
+                            {
+                              "type": "text",
+                              "supported_inputs": {
+                                "max_context_length": {
+                                  "value": 200000,
+                                  "unit": "token"
+                                }
+                              },
+                              "pricing": [
+                                {
+                                  "type": "prompt",
+                                  "unit": "token",
+                                  "cost_usd": "0.0000014"
+                                },
+                                {
+                                  "type": "cached_prompt",
+                                  "unit": "token",
+                                  "cost_usd": "0.00000026"
+                                }
+                              ]
+                            }
+                          ],
+                          "output_modalities": [
+                            {
+                              "type": "text",
+                              "max_length": {
+                                "value": 32000,
+                                "unit": "token"
+                              },
+                              "streaming": true,
+                              "supported_parameters": {
+                                "temperature": {
+                                  "type": "range",
+                                  "min": 0,
+                                  "max": 2
+                                },
+                                "max_tokens": {
+                                  "type": "integer",
+                                  "min": 1,
+                                  "max": 32000,
+                                  "unit": "token"
+                                }
+                              },
+                              "pricing": [
+                                {
+                                  "type": "completion",
+                                  "unit": "token",
+                                  "cost_usd": "0.0000044"
+                                }
+                              ]
+                            }
+                          ],
+                          "openrouter": {
+                            "slug": "subconscious/glm-5.3-marathon"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "modelsDev": {
+                    "summary": "?format=models.dev",
+                    "value": {
+                      "subconscious": {
+                        "id": "subconscious",
+                        "name": "Subconscious",
+                        "api": "https://api.subconscious.dev/v1",
+                        "models": {
+                          "subconscious/glm-5.3-marathon": {
+                            "id": "subconscious/glm-5.3-marathon",
+                            "name": "GLM 5.3 Marathon",
+                            "description": "Fast general-purpose model for coding and agentic work.",
+                            "reasoning": true,
+                            "tool_call": true,
+                            "temperature": true,
+                            "modalities": {
+                              "input": [
+                                "text"
+                              ],
+                              "output": [
+                                "text"
+                              ]
+                            },
+                            "limit": {
+                              "context": 200000,
+                              "output": 32000
+                            },
+                            "cost": {
+                              "input": 0.4,
+                              "output": 1.6,
+                              "cache_read": 0.1
+                            },
+                            "status": "active"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The `format` value is not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Unsupported format \"litellm\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, inactive, or non-inference API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The gateway catalog could not be read. The feed fails rather than return a partial catalog.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Model discovery is temporarily unavailable"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/usage": {
       "get": {
         "operationId": "getUsage",
@@ -384,6 +590,398 @@
       }
     },
     "schemas": {
+      "OpenRouterModelList":       {
+        "type": "object",
+        "title": "OpenRouter Provider V2",
+        "description": "Model documents, one entry per priced model. `cost_usd` is USD per unit, which is per token when `unit` is `token`.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterModelDocument"
+            }
+          }
+        }
+      },
+      "OpenRouterModelDocument":       {
+        "type": "object",
+        "required": [
+          "schema_version",
+          "id",
+          "name",
+          "created",
+          "input_modalities",
+          "output_modalities",
+          "openrouter"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "enum": [
+              "2.4"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "The model id to send in inference requests.",
+            "example": "subconscious/glm-5.3-marathon"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name, prefixed with the provider.",
+            "example": "Subconscious: GLM 5.3 Marathon"
+          },
+          "description": {
+            "type": "string"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "input_modalities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "image"
+                  ]
+                },
+                "supported_inputs": {
+                  "type": "object"
+                },
+                "pricing": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterPricingEntry"
+                  }
+                }
+              }
+            }
+          },
+          "output_modalities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "supported_parameters"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text"
+                  ]
+                },
+                "max_length": {
+                  "$ref": "#/components/schemas/TokenLimit"
+                },
+                "streaming": {
+                  "type": "boolean"
+                },
+                "supported_parameters": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                },
+                "pricing": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterPricingEntry"
+                  }
+                }
+              }
+            }
+          },
+          "openrouter": {
+            "type": "object",
+            "required": [
+              "slug"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "example": {
+          "schema_version": "2.4",
+          "id": "subconscious/glm-5.3-marathon",
+          "name": "Subconscious: GLM 5.3 Marathon",
+          "description": "Flagship reasoning model on OrangeLine.",
+          "created": 1762060800,
+          "input_modalities": [
+            {
+              "type": "text",
+              "supported_inputs": {
+                "max_context_length": {
+                  "value": 200000,
+                  "unit": "token"
+                }
+              },
+              "pricing": [
+                {
+                  "type": "prompt",
+                  "unit": "token",
+                  "cost_usd": "0.0000014"
+                },
+                {
+                  "type": "cached_prompt",
+                  "unit": "token",
+                  "cost_usd": "0.00000026"
+                }
+              ]
+            }
+          ],
+          "output_modalities": [
+            {
+              "type": "text",
+              "max_length": {
+                "value": 32000,
+                "unit": "token"
+              },
+              "streaming": true,
+              "supported_parameters": {
+                "temperature": {
+                  "type": "range",
+                  "min": 0,
+                  "max": 2
+                },
+                "max_tokens": {
+                  "type": "integer",
+                  "min": 1,
+                  "max": 32000,
+                  "unit": "token"
+                }
+              },
+              "pricing": [
+                {
+                  "type": "completion",
+                  "unit": "token",
+                  "cost_usd": "0.0000044"
+                }
+              ]
+            }
+          ],
+          "openrouter": {
+            "slug": "subconscious/glm-5.3-marathon"
+          }
+        }
+      },
+      "TokenLimit":       {
+        "type": "object",
+        "required": [
+          "value",
+          "unit"
+        ],
+        "properties": {
+          "value": {
+            "type": "integer"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token"
+            ]
+          }
+        }
+      },
+      "OpenRouterPricingEntry":       {
+        "type": "object",
+        "description": "One price for one thing the caller consumes. `prompt` and `cached_prompt` sit under an input modality. `completion` sits under an output modality.",
+        "required": [
+          "type",
+          "unit",
+          "cost_usd"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "prompt",
+              "cached_prompt",
+              "completion"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token",
+              "image",
+              "megapixel",
+              "second",
+              "character"
+            ]
+          },
+          "cost_usd": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d+)?$",
+            "description": "Non-negative decimal number string in USD per unit.",
+            "example": "0.0000014"
+          }
+        }
+      },
+      "ModelsDevProvider":       {
+        "type": "object",
+        "title": "models.dev",
+        "description": "A provider map keyed by model id, following the models.dev catalog shape.",
+        "properties": {
+          "subconscious": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "api",
+              "models"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "subconscious"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "api": {
+                "type": "string",
+                "description": "Inference base URL for this provider."
+              },
+              "models": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ModelsDevModel"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ModelsDevModel":       {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "cost"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "reasoning": {
+            "type": "boolean"
+          },
+          "reasoning_options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "values"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "effort"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "tool_call": {
+            "type": "boolean"
+          },
+          "structured_output": {
+            "type": "boolean"
+          },
+          "temperature": {
+            "type": "boolean"
+          },
+          "modalities": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "output": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "limit": {
+            "type": "object",
+            "properties": {
+              "context": {
+                "type": "integer"
+              },
+              "output": {
+                "type": "integer"
+              }
+            }
+          },
+          "cost": {
+            "type": "object",
+            "description": "USD per million tokens.",
+            "required": [
+              "input",
+              "output"
+            ],
+            "properties": {
+              "input": {
+                "type": "number"
+              },
+              "output": {
+                "type": "number"
+              },
+              "cache_read": {
+                "type": "number"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Model lifecycle from the gateway catalog.",
+            "enum": [
+              "active",
+              "deprecated",
+              "retired"
+            ]
+          }
+        }
+      },
       "Error": {
         "type": "object",
         "required": ["error"],
