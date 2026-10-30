@@ -125,7 +125,29 @@
           "type": "string",
           "description": "Lifecycle status from the gateway catalog. New values may appear.",
           "examples": ["active", "deprecated", "retired"]
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "rate_limits": { "$ref": "#/$defs/rate_limit_set" }
+          },
+          "additionalProperties": true
         }
+      },
+      "additionalProperties": true
+    },
+    "rate_limit_set": {
+      "type": "object",
+      "description": "The strictest limit enforced for this model for each kind and window, across the caller's organization and key scopes. An all-models limit is enforced independently per hosted model. Absent when no limit is configured; an absent field means no limit of that kind and window is enforced.",
+      "properties": {
+        "requests_per_minute": { "type": "integer" },
+        "requests_per_hour": { "type": "integer" },
+        "requests_per_day": { "type": "integer" },
+        "requests_per_month": { "type": "integer" },
+        "tokens_per_minute": { "type": "integer" },
+        "tokens_per_hour": { "type": "integer" },
+        "tokens_per_day": { "type": "integer" },
+        "tokens_per_month": { "type": "integer" }
       },
       "additionalProperties": true
     }

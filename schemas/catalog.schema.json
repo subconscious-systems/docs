@@ -14,11 +14,6 @@
       "type": "array",
       "description": "The models this credential can invoke.",
       "items": { "$ref": "#/$defs/model" }
-    },
-    "rate_limits": {
-      "type": "object",
-      "description": "Limits this caller is subject to, keyed by the reserved \"all\" key or by a model id. A key of \"all\" applies to every model. When a model id also has an entry, the stricter value governs that model.",
-      "additionalProperties": { "$ref": "#/$defs/rate_limit_set" }
     }
   },
   "additionalProperties": true,
@@ -142,7 +137,8 @@
             }
           },
           "additionalProperties": true
-        }
+        },
+        "rate_limits": { "$ref": "#/$defs/rate_limit_set" }
       },
       "additionalProperties": true
     },
@@ -156,7 +152,7 @@
     },
     "rate_limit_set": {
       "type": "object",
-      "description": "The strictest limit enforced for each kind and window. An absent field means no limit of that kind is enforced.",
+      "description": "The strictest limit enforced for this model for each kind and window, across the caller's organization and key scopes. An all-models limit is enforced independently per hosted model. Absent when no limit is configured; an absent field means no limit of that kind and window is enforced.",
       "properties": {
         "requests_per_minute": { "type": "integer" },
         "requests_per_hour": { "type": "integer" },

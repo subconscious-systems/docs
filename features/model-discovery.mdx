@@ -11,7 +11,7 @@ There are two discovery surfaces.
 - `https://api.subconscious.dev/v1/models` (same base url as inference) gives you:
   - Available models
   - Model capabilities (modalities, context limits, etc.)
-  - Rate limits
+  - Rate limits, per model
   - See [List models](/api-reference/models) for the response reference and a downloadable JSON schema.
 - `https://platform.subconscious.dev/api/v1/models` gives you everything from above, plus:
   - Pricing information
@@ -19,5 +19,5 @@ There are two discovery surfaces.
   - See [List models with pricing](/api-reference/platform-models) for the response reference and schemas for both formats.
 
 <Note>
-Both endpoints require an API key. We issue a dedicated integration credential to each partner. Ask for one before pointing a router or aggregator at these endpoints. The credential controls which models the feed lists and what rate limits it advertises, so a partner feed reflects real capacity.
+Both endpoints require an API key. We issue a dedicated integration credential to each partner. Ask for one before pointing a router or aggregator at these endpoints. The credential controls which models the feed lists and the rate limits it advertises per model, so a partner feed reflects real capacity.
 </Note>

@@ -711,7 +711,7 @@
     "/models": {
       "get": {
         "summary": "List models available to this API key",
-        "description": "Returns the model catalog for the caller. Each entry describes the model's lifecycle, limits, modalities, capabilities, supported request wires, and deployment facts.",
+        "description": "Returns the model catalog for the caller. Each entry describes the model's lifecycle, limits, modalities, capabilities, supported request wires, deployment facts, and the rate limits enforced for this caller on that model.",
         "operationId": "listModels",
         "security": [
           {
@@ -730,7 +730,7 @@
           {
             "lang": "javascript",
             "label": "Node.js (fetch)",
-            "source": "const response = await fetch(\"https://api.subconscious.dev/v1/models\", {\n  headers: { Authorization: `Bearer ${process.env.SUBCONSCIOUS_API_KEY}` },\n});\nconst catalog = await response.json();\nconsole.log(catalog.data.map((model) => model.id));\nconsole.log(catalog.rate_limits);"
+            "source": "const response = await fetch(\"https://api.subconscious.dev/v1/models\", {\n  headers: { Authorization: `Bearer ${process.env.SUBCONSCIOUS_API_KEY}` },\n});\nconst catalog = await response.json();\nconsole.log(catalog.data.map((model) => model.id));\nconsole.log(catalog.data.map((model) => model.rate_limits));"
           }
         ],
         "responses": {
@@ -791,17 +791,7 @@
                         "tokens_per_minute": 400000
                       }
                     }
-                  ],
-                  "rate_limits": {
-                    "all": {
-                      "requests_per_minute": 600,
-                      "tokens_per_minute": 2000000
-                    },
-                    "subconscious/glm-5.3-marathon": {
-                      "requests_per_minute": 120,
-                      "tokens_per_minute": 400000
-                    }
-                  }
+                  ]
                 },
                 "schema": {
                   "type": "object",
@@ -975,51 +965,37 @@
                                 "type": "boolean"
                               }
                             }
+                          },
+                          "rate_limits": {
+                            "type": "object",
+                            "description": "The strictest enforced limit per kind and window for this model, across the caller's organization and key scopes. An all-models limit is enforced independently per hosted model. Absent when no limit is configured; an absent field means no limit of that kind and window is enforced.",
+                            "properties": {
+                              "requests_per_minute": {
+                                "type": "integer"
+                              },
+                              "requests_per_hour": {
+                                "type": "integer"
+                              },
+                              "requests_per_day": {
+                                "type": "integer"
+                              },
+                              "requests_per_month": {
+                                "type": "integer"
+                              },
+                              "tokens_per_minute": {
+                                "type": "integer"
+                              },
+                              "tokens_per_hour": {
+                                "type": "integer"
+                              },
+                              "tokens_per_day": {
+                                "type": "integer"
+                              },
+                              "tokens_per_month": {
+                                "type": "integer"
+                              }
+                            }
                           }
-                        }
-                      }
-                    },
-                    "rate_limits": {
-                      "type": "object",
-                      "description": "The caller's enforced limits, keyed by the reserved 'all' key or a model id. The stricter value governs a model that appears in both.",
-                      "additionalProperties": {
-                        "type": "object",
-                        "description": "The strictest enforced limit for each kind and window. An absent field means no limit of that kind is enforced.",
-                        "properties": {
-                          "requests_per_minute": {
-                            "type": "integer"
-                          },
-                          "requests_per_hour": {
-                            "type": "integer"
-                          },
-                          "requests_per_day": {
-                            "type": "integer"
-                          },
-                          "requests_per_month": {
-                            "type": "integer"
-                          },
-                          "tokens_per_minute": {
-                            "type": "integer"
-                          },
-                          "tokens_per_hour": {
-                            "type": "integer"
-                          },
-                          "tokens_per_day": {
-                            "type": "integer"
-                          },
-                          "tokens_per_month": {
-                            "type": "integer"
-                          }
-                        }
-                      },
-                      "example": {
-                        "all": {
-                          "requests_per_minute": 600,
-                          "tokens_per_minute": 2000000
-                        },
-                        "subconscious/glm-5.3-marathon": {
-                          "requests_per_minute": 120,
-                          "tokens_per_minute": 400000
                         }
                       }
                     }

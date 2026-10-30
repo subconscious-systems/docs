@@ -291,7 +291,7 @@
       "get": {
         "operationId": "listModelsWithPricing",
         "summary": "List models with pricing",
-        "description": "Returns the caller's model catalog with per-token prices. The platform reads the gateway catalog for the same key and adds the prices the key pays. A model is listed only when the key can invoke it, the platform has a display row for it, and it carries a price. The default format is OpenRouter Provider V2 model documents. Request `?format=models.dev` for a models.dev provider document. Prices are USD per token in the default format, and USD per million tokens in the models.dev format. Neither partner format carries rate limits, because both upstream schemas reject unknown fields. Call GET https://api.subconscious.dev/v1/models for the caller's enforced limits. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected.",
+        "description": "Returns the caller's model catalog with per-token prices. The platform reads the gateway catalog for the same key and adds the prices the key pays. A model is listed only when the key can invoke it, the platform has a display row for it, and it carries a price. The default format is OpenRouter Provider V2 model documents. Request `?format=models.dev` for a models.dev provider document. Prices are USD per token in the default format, and USD per million tokens in the models.dev format. Both formats carry the caller's enforced rate limits per model: the models.dev format repeats them under `metadata.rate_limits`, and the OpenRouter format declares token throughput as capacity on the text input modality and requests per minute as capacity at the document root, the schema's only home for request-scoped limits. A model with no configured limits omits these fields. GET https://api.subconscious.dev/v1/models stays the canonical source. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected.",
         "security": [
           {
             "bearerAuth": []
@@ -361,6 +361,14 @@
                                   "unit": "token"
                                 }
                               },
+                              "capacity": [
+                                {
+                                  "type": "prompt",
+                                  "unit": "token",
+                                  "per": "minute",
+                                  "value": 2000000
+                                }
+                              ],
                               "pricing": [
                                 {
                                   "type": "prompt",
@@ -405,6 +413,14 @@
                               ]
                             }
                           ],
+                          "capacity": [
+                            {
+                              "type": "request",
+                              "unit": "request",
+                              "per": "minute",
+                              "value": 600
+                            }
+                          ],
                           "openrouter": {
                             "slug": "subconscious/glm-5.3-marathon"
                           }
@@ -444,7 +460,13 @@
                               "output": 1.6,
                               "cache_read": 0.1
                             },
-                            "status": "active"
+                            "status": "active",
+                            "metadata": {
+                              "rate_limits": {
+                                "requests_per_minute": 600,
+                                "tokens_per_minute": 2000000
+                              }
+                            }
                           }
                         }
                       }
@@ -497,7 +519,7 @@
       "get": {
         "operationId": "getUsage",
         "summary": "Get usage",
-        "description": "Today's usage for the organization that owns the inference key: billing terms, plan, credit balance, the active invoice window for invoiced organizations, and tokens consumed today by model. Prepaid organizations also get a daily allowance percentage; invoiced organizations bill against their spend limit instead. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
+        "description": "Today's usage for the organization that owns the inference key: billing terms, plan, credit balance, the active invoice window for invoiced organizations, and tokens consumed today by model. The response has two shapes. A prepaid organization spends a wallet and plan allowance, so it reports `credits` with a daily allowance percentage, and `invoice` is null. An invoiced organization bills a monthly net-30 invoice against a spend limit, so it reports `invoice` with the period window, accrued spend at its rates, and its spend limit, and `credits` and the daily allowance are null. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
         "security": [
           { "bearerAuth": [] },
           { "apiKeyAuth": [] }
@@ -511,32 +533,61 @@
         ],
         "responses": {
           "200": {
-            "description": "Organization usage snapshot.",
+            "description": "Organization usage snapshot. Prepaid organizations carry `credits` and a daily allowance; invoiced organizations carry the `invoice` window instead.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Usage" },
-                "example": {
-                  "billingTerms": "prepaid",
-                  "plan": {
-                    "label": "Heavy",
-                    "status": "active",
-                    "dailyAllowance": {
-                      "basis": "credit",
-                      "percent": 5.5,
-                      "resetAt": "2026-09-24T00:00:00.000Z"
+                "examples": {
+                  "prepaid": {
+                    "summary": "Prepaid organization",
+                    "value": {
+                      "billingTerms": "prepaid",
+                      "plan": {
+                        "label": "Heavy",
+                        "status": "active",
+                        "dailyAllowance": {
+                          "basis": "credit",
+                          "percent": 5.5,
+                          "resetAt": "2026-09-24T00:00:00.000Z"
+                        }
+                      },
+                      "credits": {
+                        "balanceDollars": 12.34,
+                        "overageThisPeriodDollars": 0
+                      },
+                      "invoice": null,
+                      "models": [
+                        {
+                          "slug": "subconscious/glm-5.3-marathon",
+                          "consumedToday": 44500000
+                        }
+                      ]
                     }
                   },
-                  "credits": {
-                    "balanceDollars": 12.34,
-                    "overageThisPeriodDollars": 0
-                  },
-                  "invoice": null,
-                  "models": [
-                    {
-                      "slug": "subconscious/glm-5.3-marathon",
-                      "consumedToday": 44500000
+                  "invoiced": {
+                    "summary": "Invoiced organization",
+                    "value": {
+                      "billingTerms": "invoiced",
+                      "plan": {
+                        "label": null,
+                        "status": null,
+                        "dailyAllowance": null
+                      },
+                      "credits": null,
+                      "invoice": {
+                        "accruedThisPeriodDollars": 1234.56,
+                        "periodStart": "2026-10-01T00:00:00.000Z",
+                        "periodEnd": "2026-11-01T00:00:00.000Z",
+                        "limitDollars": 5000
+                      },
+                      "models": [
+                        {
+                          "slug": "subconscious/glm-5.3-marathon",
+                          "consumedToday": 44500000
+                        }
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -659,6 +710,13 @@
                 "supported_inputs": {
                   "type": "object"
                 },
+                "capacity": {
+                  "type": "array",
+                  "description": "Token throughput the caller may send to this model per minute. Omitted when no token limit is configured or the limit is zero.",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterInputCapacityEntry"
+                  }
+                },
                 "pricing": {
                   "type": "array",
                   "items": {
@@ -715,6 +773,13 @@
                 "type": "string"
               }
             }
+          },
+          "capacity": {
+            "type": "array",
+            "description": "Request-scoped limits for this model. The document root is the schema's only home for them. Omitted when no request limit is configured.",
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterRequestCapacityEntry"
+            }
           }
         },
         "example": {
@@ -732,6 +797,14 @@
                   "unit": "token"
                 }
               },
+              "capacity": [
+                {
+                  "type": "prompt",
+                  "unit": "token",
+                  "per": "minute",
+                  "value": 2000000
+                }
+              ],
               "pricing": [
                 {
                   "type": "prompt",
@@ -778,6 +851,82 @@
           ],
           "openrouter": {
             "slug": "subconscious/glm-5.3-marathon"
+          },
+          "capacity": [
+            {
+              "type": "request",
+              "unit": "request",
+              "per": "minute",
+              "value": 600
+            }
+          ]
+        }
+      },
+      "OpenRouterInputCapacityEntry":       {
+        "type": "object",
+        "description": "Token throughput the caller may send to this model per minute.",
+        "required": [
+          "type",
+          "unit",
+          "per",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "prompt"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token"
+            ]
+          },
+          "per": {
+            "type": "string",
+            "enum": [
+              "minute"
+            ]
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "OpenRouterRequestCapacityEntry":       {
+        "type": "object",
+        "description": "Requests per minute the caller may send to this model.",
+        "required": [
+          "type",
+          "unit",
+          "per",
+          "value"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "request"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "request"
+            ]
+          },
+          "per": {
+            "type": "string",
+            "enum": [
+              "minute"
+            ]
+          },
+          "value": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       },
@@ -979,7 +1128,30 @@
               "deprecated",
               "retired"
             ]
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Extension data keyed for the caller. The platform repeats the caller's enforced rate limits here.",
+            "properties": {
+              "rate_limits": {
+                "$ref": "#/components/schemas/RateLimitSet"
+              }
+            }
           }
+        }
+      },
+      "RateLimitSet": {
+        "type": "object",
+        "description": "The strictest enforced limit per kind and window for this caller on this model. Absent when no limit is configured; an absent field means no limit of that kind and window is enforced.",
+        "properties": {
+          "requests_per_minute": { "type": "integer" },
+          "requests_per_hour": { "type": "integer" },
+          "requests_per_day": { "type": "integer" },
+          "requests_per_month": { "type": "integer" },
+          "tokens_per_minute": { "type": "integer" },
+          "tokens_per_hour": { "type": "integer" },
+          "tokens_per_day": { "type": "integer" },
+          "tokens_per_month": { "type": "integer" }
         }
       },
       "Error": {
