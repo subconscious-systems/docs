@@ -1,0 +1,92 @@
+---
+title: "Session headers"
+description: "Group your requests into conversations with a session header, so multi-turn work stays readable in usage views."
+icon: "link"
+---
+
+Every request you send is metered on its own. If your application runs multi-turn work, one request at a time is hard to read: usage views show a long list of isolated entries instead of the conversations your users actually had. A session header fixes that. Send one stable header value per conversation, and the gateway groups every request that shares it into a single conversation.
+
+This page describes the header contract for custom applications and harnesses. Supported coding agents such as Claude Code, Codex, OpenCode, and Pi already send their own identity, and need nothing from this page.
+
+## The header to send
+
+Pick a header name that names your application, ending in `-session-id` and starting with `x-`. For example, an integration built on LangChain could send:
+
+```
+x-langchain-session-id: 7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90
+```
+
+Any header of the form `x-<name>-session-id` is accepted, as long as the name is not reserved (see the next section). The gateway treats it as your session identity.
+
+Follow these rules for the value:
+
+- Mint a fresh value when a conversation starts, such as a UUID. Do not reuse values across conversations.
+- Send the same value on every request that belongs to that conversation, including retries and tool-loop turns.
+- Keep the value between 8 and 256 characters. Shorter or longer values are ignored.
+- The header is read before any protocol translation, so it works the same on `/v1/chat/completions` and `/v1/messages`.
+
+<CodeGroup>
+
+```python Python (OpenAI SDK)
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-api-key",
+    base_url="https://api.subconscious.dev/v1",
+)
+
+session_id = "7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90"
+
+response = client.chat.completions.create(
+    model="subconscious/glm-5.3-marathon",
+    messages=[{"role": "user", "content": "Refactor this function."}],
+    extra_headers={"x-langchain-session-id": session_id},
+)
+```
+
+```typescript Node.js (OpenAI SDK)
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "your-api-key",
+  baseURL: "https://api.subconscious.dev/v1",
+  defaultHeaders: {
+    "x-langchain-session-id": "7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90",
+  },
+});
+
+const response = await client.chat.completions.create({
+  model: "subconscious/glm-5.3-marathon",
+  messages: [{ role: "user", content: "Refactor this function." }],
+});
+```
+
+</CodeGroup>
+
+## Headers to avoid
+
+These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application does not group your traffic, and some of them actively change how your requests are handled.
+
+| Header | Why to avoid it |
+| --- | --- |
+| `x-subconscious-session-id` | Reserved for internal gateway routing. Requests carrying it are treated as forwarded by another Subconscious gateway, not as your own session. |
+| `x-session-id` | Part of the Pi and OpenCode client formats. Sending it makes the gateway guess which of those clients you are. |
+| `x-session-affinity` | Part of the Pi and OpenCode client formats, with the same risk. |
+| `x-claude-code-session-id` | Reserved for the Claude Code client. It labels your traffic as Claude Code. |
+| `x-subconscious-code-session-id` | Reserved for the Subconscious Code client. |
+| `x-litellm-session-id` | Reserved for LiteLLM. |
+| `x-mcp-session-id` and `mcp-session-id` | Reserved for MCP transport sessions. |
+
+The rule is simple: use one `x-<your-app>-session-id` header of your own, and send nothing from the list above.
+
+## Optional additions
+
+A few extra signals are accepted alongside your session header:
+
+- `x-subconscious-trace-id` groups requests by a flow or trace instead of a conversation. It takes priority over session headers, and pairs with `x-subconscious-parent-trace-id` to nest flows inside each other. Use it when your application thinks in terms of runs rather than chats.
+- `prompt_cache_key` in the request body also groups requests. If your application already sets it per conversation for caching, it works without any header.
+- `x-client-request-id` identifies a single request, not a conversation. Send it alongside the session header when you want to correlate a specific request in your own logs.
+
+## Attribution
+
+Grouped conversations appear in usage views with the requests that formed them. The gateway labels traffic from known coding agents automatically. A custom session header does not create an agent label, so your conversations appear as plain grouped requests. Do not send `x-subconscious-client` to fake a label: only known agent names are recognized, and anything else is ignored.
