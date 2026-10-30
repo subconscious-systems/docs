@@ -17,8 +17,12 @@
         "summary": "Create an inference key",
         "description": "Mints an inference key for the organization that owns the management key. The `key` secret is returned once. Later delete calls use `keyPrefix`. A management key cannot run inference. Inference keys presented here are rejected.",
         "security": [
-          { "bearerAuth": [] },
-          { "apiKeyAuth": [] }
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
         ],
         "x-codeSamples": [
           {
@@ -33,7 +37,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": ["name"],
+                "required": [
+                  "name"
+                ],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -54,14 +60,27 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["apiKey"],
+                  "required": [
+                    "apiKey"
+                  ],
                   "properties": {
                     "apiKey": {
                       "type": "object",
-                      "required": ["id", "name", "key", "keyPrefix", "createdAt"],
+                      "required": [
+                        "id",
+                        "name",
+                        "key",
+                        "keyPrefix",
+                        "createdAt"
+                      ],
                       "properties": {
-                        "id": { "type": "string", "description": "Platform id of the key." },
-                        "name": { "type": "string" },
+                        "id": {
+                          "type": "string",
+                          "description": "Platform id of the key."
+                        },
+                        "name": {
+                          "type": "string"
+                        },
                         "key": {
                           "type": "string",
                           "description": "Inference secret (`sk-gw-...`). Store it now. It is not returned again."
@@ -70,7 +89,10 @@
                           "type": "string",
                           "description": "Prefix used by the delete endpoint."
                         },
-                        "createdAt": { "type": "string", "format": "date-time" }
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
                       }
                     }
                   }
@@ -91,13 +113,19 @@
             "description": "The body is not JSON, `name` is missing or longer than 255 characters, or the organization is at its inference-key limit.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
                 "examples": {
                   "name": {
-                    "value": { "error": "Body must include a non-empty \"name\" (max 255 chars)" }
+                    "value": {
+                      "error": "Body must include a non-empty \"name\" (max 255 chars)"
+                    }
                   },
                   "limit": {
-                    "value": { "error": "Maximum number of keys is 10" }
+                    "value": {
+                      "error": "Maximum number of keys is 10"
+                    }
                   }
                 }
               }
@@ -106,20 +134,30 @@
           "401": {
             "description": "Missing or inactive management key.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           },
           "403": {
             "description": "The key is not a management key, or the organization does not have closed-beta access.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
                 "examples": {
                   "notManagement": {
-                    "value": { "error": "Key is not a management API key" }
+                    "value": {
+                      "error": "Key is not a management API key"
+                    }
                   },
                   "closedBeta": {
-                    "value": { "error": "Closed-beta access is required" }
+                    "value": {
+                      "error": "Closed-beta access is required"
+                    }
                   }
                 }
               }
@@ -128,7 +166,11 @@
           "500": {
             "description": "The key could not be created.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
@@ -138,8 +180,12 @@
         "summary": "List inference keys",
         "description": "Lists inference keys for the organization that owns the management key, newest first. Includes inactive keys. Hidden keys and management keys are omitted. Secrets are not included.",
         "security": [
-          { "bearerAuth": [] },
-          { "apiKeyAuth": [] }
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
         ],
         "x-codeSamples": [
           {
@@ -155,24 +201,45 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["apiKeys"],
+                  "required": [
+                    "apiKeys"
+                  ],
                   "properties": {
                     "apiKeys": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["id", "name", "keyPrefix", "isActive", "createdAt", "lastUsedAt"],
+                        "required": [
+                          "id",
+                          "name",
+                          "keyPrefix",
+                          "isActive",
+                          "createdAt",
+                          "lastUsedAt"
+                        ],
                         "properties": {
-                          "id": { "type": "string" },
-                          "name": { "type": "string" },
-                          "keyPrefix": { "type": "string" },
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "keyPrefix": {
+                            "type": "string"
+                          },
                           "isActive": {
                             "type": "boolean",
                             "description": "False after the key has been deleted."
                           },
-                          "createdAt": { "type": "string", "format": "date-time" },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
                           "lastUsedAt": {
-                            "type": ["string", "null"],
+                            "type": [
+                              "string",
+                              "null"
+                            ],
                             "format": "date-time"
                           }
                         }
@@ -198,13 +265,21 @@
           "401": {
             "description": "Missing or inactive management key.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           },
           "403": {
             "description": "The key is not a management key.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
@@ -216,8 +291,12 @@
         "summary": "Delete an inference key",
         "description": "Revokes the inference key at the gateway and deactivates it. Requests that still present the deleted key fail. The lookup is limited to active inference keys in the management key's organization. Management keys cannot be deleted here.",
         "security": [
-          { "bearerAuth": [] },
-          { "apiKeyAuth": [] }
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
         ],
         "x-codeSamples": [
           {
@@ -227,7 +306,9 @@
           }
         ],
         "parameters": [
-          { "$ref": "#/components/parameters/keyPrefix" }
+          {
+            "$ref": "#/components/parameters/keyPrefix"
+          }
         ],
         "responses": {
           "200": {
@@ -236,11 +317,24 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "required": ["revoked", "id", "keyPrefix"],
+                  "required": [
+                    "revoked",
+                    "id",
+                    "keyPrefix"
+                  ],
                   "properties": {
-                    "revoked": { "type": "boolean", "enum": [true] },
-                    "id": { "type": "string" },
-                    "keyPrefix": { "type": "string" }
+                    "revoked": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "keyPrefix": {
+                      "type": "string"
+                    }
                   }
                 },
                 "example": {
@@ -254,34 +348,153 @@
           "401": {
             "description": "Missing or inactive management key.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           },
           "403": {
             "description": "The key is not a management key.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           },
           "404": {
             "description": "No active inference key in this organization matches the prefix.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" },
-                "example": { "error": "No active API key with prefix a1b2c3d4" }
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "No active API key with prefix a1b2c3d4"
+                }
               }
             }
           },
           "502": {
             "description": "The gateway did not revoke the key. The platform key stays active. Retry the request.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           },
           "500": {
             "description": "The key could not be deleted.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/models": {
+      "get": {
+        "operationId": "listModelsWithPricing",
+        "summary": "List models with pricing",
+        "description": "Returns the caller's model catalog with per-token prices. The platform reads the gateway catalog for the same key and adds the prices the key pays. A model is listed only when the key can invoke it, the platform has a display row for it, and it carries a price. The default format is an OpenRouter Provider V2 model list. Request `?format=models.dev` for a models.dev provider document. Prices are USD per token in the default format, and USD per million tokens in the models.dev format. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected.",
+        "security": [
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "models.dev"
+              ]
+            },
+            "description": "Serialization format. Omit for OpenRouter Provider V2. `models.dev` returns a models.dev provider document."
+          }
+        ],
+        "x-codeSamples": [
+          {
+            "lang": "bash",
+            "label": "cURL",
+            "source": "curl https://platform.subconscious.dev/api/v1/models \\\n  -H \"Authorization: Bearer sk-gw-...\""
+          },
+          {
+            "lang": "bash",
+            "label": "models.dev",
+            "source": "curl \"https://platform.subconscious.dev/api/v1/models?format=models.dev\" \\\n  -H \"Authorization: Bearer sk-gw-...\""
+          }
+        ],
+        "x-mint": {
+          "content": "## Response schemas\n\nThe response shape follows the `format` query parameter. Download the schema for each format, or read the upstream provider documentation.\n\n<CardGroup cols={2}>\n  <Card title=\"OpenRouter Provider V2\" icon=\"download\" href=\"https://openrouter.ai/docs/assets/provider-monitor-schema-v2.openapi.json\">\n    OpenRouter provider schema, as an OpenAPI 3.1 JSON document. The default format.\n  </Card>\n  <Card title=\"OpenRouter integration guide\" icon=\"book\" href=\"https://openrouter.ai/docs/guides/providers/integration\">\n    How OpenRouter reads a provider feed and which fields it bills.\n  </Card>\n  <Card title=\"models-dev.schema.json\" icon=\"download\" href=\"/schemas/models-dev.schema.json\">\n    JSON Schema for `?format=models.dev`. Prices are USD per million tokens.\n  </Card>\n  <Card title=\"models.dev catalog\" icon=\"book\" href=\"https://models.dev/api.json\">\n    The upstream models.dev document this format follows.\n  </Card>\n</CardGroup>\n\nBoth schemas are open. Unknown fields are accepted, no field is required, and enumerated values are documented as examples. Fields are added without notice, and an absent field means we do not know the value, never that the value is unsupported.\n"
+        },
+        "responses": {
+          "200": {
+            "description": "Priced model catalog in the requested format.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/OpenRouterModelList"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ModelsDevProvider"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The `format` value is not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Unsupported format \"litellm\""
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, inactive, or non-inference API key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The gateway catalog could not be read. The feed fails rather than return a partial catalog.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Model discovery is temporarily unavailable"
+                }
+              }
             }
           }
         }
@@ -291,10 +504,14 @@
       "get": {
         "operationId": "getUsage",
         "summary": "Get usage",
-        "description": "Today's usage for the organization that owns the inference key: billing terms, plan, credit balance, daily allowance, the active invoice window for invoiced organizations, and tokens consumed today by model. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
+        "description": "Today's usage for the organization that owns the inference key: billing terms, plan, credit balance, the active invoice window for invoiced organizations, and tokens consumed today by model. Prepaid organizations also get a daily allowance percentage; invoiced organizations bill against their spend limit instead. Authenticate with an inference key (`Authorization: Bearer` or `X-API-Key`). Management keys are rejected. The allowance is a percentage of today's grant. The grant amount itself is not included.",
         "security": [
-          { "bearerAuth": [] },
-          { "apiKeyAuth": [] }
+          {
+            "bearerAuth": []
+          },
+          {
+            "apiKeyAuth": []
+          }
         ],
         "x-codeSamples": [
           {
@@ -308,7 +525,9 @@
             "description": "Organization usage snapshot.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Usage" },
+                "schema": {
+                  "$ref": "#/components/schemas/Usage"
+                },
                 "example": {
                   "billingTerms": "prepaid",
                   "plan": {
@@ -338,22 +557,34 @@
           "401": {
             "description": "Missing, inactive, or non-inference API key.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           },
           "403": {
             "description": "The organization does not have closed-beta access.",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Error" },
-                "example": { "error": "Closed-beta access is required" }
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Closed-beta access is required"
+                }
               }
             }
           },
           "502": {
             "description": "Usage could not be read.",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
             }
           }
         }
@@ -379,39 +610,469 @@
         "name": "keyPrefix",
         "in": "path",
         "required": true,
-        "schema": { "type": "string", "example": "a1b2c3d4" },
+        "schema": {
+          "type": "string",
+          "example": "a1b2c3d4"
+        },
         "description": "Prefix returned when the inference key was created."
       }
     },
     "schemas": {
       "Error": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
-          "error": { "type": "string" }
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "OpenRouterModelList": {
+        "type": "object",
+        "title": "OpenRouter Provider V2",
+        "description": "Model documents, one entry per priced model. `cost_usd` is USD per unit, which is per token when `unit` is `token`.",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OpenRouterModelDocument"
+            }
+          }
+        }
+      },
+      "OpenRouterModelDocument": {
+        "type": "object",
+        "required": [
+          "schema_version",
+          "id",
+          "name",
+          "created",
+          "input_modalities",
+          "output_modalities",
+          "openrouter"
+        ],
+        "properties": {
+          "schema_version": {
+            "type": "string",
+            "enum": [
+              "2.4"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "The model id to send in inference requests.",
+            "example": "subconscious/glm-5.3-marathon"
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name, prefixed with the provider.",
+            "example": "Subconscious: GLM 5.3 Marathon"
+          },
+          "description": {
+            "type": "string"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "input_modalities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text",
+                    "image"
+                  ]
+                },
+                "supported_inputs": {
+                  "type": "object"
+                },
+                "pricing": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterPricingEntry"
+                  }
+                }
+              }
+            }
+          },
+          "output_modalities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "supported_parameters"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "text"
+                  ]
+                },
+                "max_length": {
+                  "$ref": "#/components/schemas/TokenLimit"
+                },
+                "streaming": {
+                  "type": "boolean"
+                },
+                "supported_parameters": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object"
+                  }
+                },
+                "pricing": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OpenRouterPricingEntry"
+                  }
+                }
+              }
+            }
+          },
+          "openrouter": {
+            "type": "object",
+            "required": [
+              "slug"
+            ],
+            "properties": {
+              "slug": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "example": {
+          "schema_version": "2.4",
+          "id": "subconscious/glm-5.3-marathon",
+          "name": "Subconscious: GLM 5.3 Marathon",
+          "description": "Flagship reasoning model on OrangeLine.",
+          "created": 1762060800,
+          "input_modalities": [
+            {
+              "type": "text",
+              "supported_inputs": {
+                "max_context_length": {
+                  "value": 200000,
+                  "unit": "token"
+                }
+              },
+              "pricing": [
+                {
+                  "type": "prompt",
+                  "unit": "token",
+                  "cost_usd": "0.0000014"
+                },
+                {
+                  "type": "cached_prompt",
+                  "unit": "token",
+                  "cost_usd": "0.00000026"
+                }
+              ]
+            }
+          ],
+          "output_modalities": [
+            {
+              "type": "text",
+              "max_length": {
+                "value": 32000,
+                "unit": "token"
+              },
+              "streaming": true,
+              "supported_parameters": {
+                "temperature": {
+                  "type": "range",
+                  "min": 0,
+                  "max": 2
+                },
+                "max_tokens": {
+                  "type": "integer",
+                  "min": 1,
+                  "max": 32000,
+                  "unit": "token"
+                }
+              },
+              "pricing": [
+                {
+                  "type": "completion",
+                  "unit": "token",
+                  "cost_usd": "0.0000044"
+                }
+              ]
+            }
+          ],
+          "openrouter": {
+            "slug": "subconscious/glm-5.3-marathon"
+          }
+        }
+      },
+      "TokenLimit": {
+        "type": "object",
+        "required": [
+          "value",
+          "unit"
+        ],
+        "properties": {
+          "value": {
+            "type": "integer"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token"
+            ]
+          }
+        }
+      },
+      "OpenRouterPricingEntry": {
+        "type": "object",
+        "description": "One price for one thing the caller consumes. `prompt` and `cached_prompt` sit under an input modality. `completion` sits under an output modality.",
+        "required": [
+          "type",
+          "unit",
+          "cost_usd"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "prompt",
+              "cached_prompt",
+              "completion"
+            ]
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "token",
+              "image",
+              "megapixel",
+              "second",
+              "character"
+            ]
+          },
+          "cost_usd": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d+)?$",
+            "description": "Non-negative decimal number string in USD per unit.",
+            "example": "0.0000014"
+          }
+        }
+      },
+      "ModelsDevProvider": {
+        "type": "object",
+        "title": "models.dev",
+        "description": "A provider map keyed by model id, following the models.dev catalog shape.",
+        "properties": {
+          "subconscious": {
+            "type": "object",
+            "required": [
+              "id",
+              "name",
+              "api",
+              "models"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "enum": [
+                  "subconscious"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "api": {
+                "type": "string",
+                "description": "Inference base URL for this provider."
+              },
+              "models": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ModelsDevModel"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ModelsDevModel": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "cost"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "reasoning": {
+            "type": "boolean"
+          },
+          "reasoning_options": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "values"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "effort"
+                  ]
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "tool_call": {
+            "type": "boolean"
+          },
+          "structured_output": {
+            "type": "boolean"
+          },
+          "temperature": {
+            "type": "boolean"
+          },
+          "modalities": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "output": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "limit": {
+            "type": "object",
+            "properties": {
+              "context": {
+                "type": "integer"
+              },
+              "output": {
+                "type": "integer"
+              }
+            }
+          },
+          "cost": {
+            "type": "object",
+            "description": "USD per million tokens.",
+            "required": [
+              "input",
+              "output"
+            ],
+            "properties": {
+              "input": {
+                "type": "number"
+              },
+              "output": {
+                "type": "number"
+              },
+              "cache_read": {
+                "type": "number"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Model lifecycle from the gateway catalog.",
+            "enum": [
+              "active",
+              "deprecated",
+              "retired"
+            ]
+          }
         }
       },
       "Usage": {
         "type": "object",
-        "required": ["billingTerms", "plan", "credits", "invoice", "models"],
+        "required": [
+          "billingTerms",
+          "plan",
+          "credits",
+          "invoice",
+          "models"
+        ],
         "properties": {
           "billingTerms": {
             "type": "string",
-            "enum": ["prepaid", "invoiced"],
+            "enum": [
+              "prepaid",
+              "invoiced"
+            ],
             "description": "How the organization is billed. `prepaid` spends a wallet and plan allowance; `invoiced` bills a monthly net-30 invoice against a spend limit."
           },
           "plan": {
             "type": "object",
-            "required": ["label", "status", "dailyAllowance"],
+            "required": [
+              "label",
+              "status",
+              "dailyAllowance"
+            ],
             "properties": {
-              "label": { "type": ["string", "null"], "description": "Plan name. Null when the organization has no plan." },
-              "status": { "type": ["string", "null"], "description": "Plan status, such as `active`." },
+              "label": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Plan name. Null when the organization has no plan."
+              },
+              "status": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Plan status, such as `active`."
+              },
               "dailyAllowance": {
-                "description": "Share of today's allowance. Null for unlimited plans and for organizations with no allowance. `percent` can exceed 100 when usage is past the allowance. `basis` is `credit` when the day is sized in credits, `tokens` when it is sized in tokens, and `unavailable` when a credit-billed read failed.",
+                "description": "Share of today's allowance. Prepaid organizations only. Null for invoiced organizations, which bill against a spend limit rather than a daily grant, and for organizations with no allowance. `percent` can exceed 100 when usage is past the allowance. `basis` is `credit` when the day is sized in credits, `tokens` when it is sized in tokens, and `unavailable` when a credit-billed read failed.",
                 "oneOf": [
-                  { "$ref": "#/components/schemas/CreditOrTokenAllowance" },
-                  { "$ref": "#/components/schemas/UnavailableAllowance" },
-                  { "type": "null" }
+                  {
+                    "$ref": "#/components/schemas/CreditOrTokenAllowance"
+                  },
+                  {
+                    "$ref": "#/components/schemas/UnavailableAllowance"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               }
             }
@@ -419,15 +1080,23 @@
           "credits": {
             "description": "Wallet balance and overage. Null for invoiced organizations, which have no wallet.",
             "oneOf": [
-              { "$ref": "#/components/schemas/Credits" },
-              { "type": "null" }
+              {
+                "$ref": "#/components/schemas/Credits"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "invoice": {
             "description": "The active invoice window. Null for prepaid organizations.",
             "oneOf": [
-              { "$ref": "#/components/schemas/InvoiceUsage" },
-              { "type": "null" }
+              {
+                "$ref": "#/components/schemas/InvoiceUsage"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "models": {
@@ -435,9 +1104,15 @@
             "description": "Models with usage today. A model with no usage today is omitted, which means zero tokens so far.",
             "items": {
               "type": "object",
-              "required": ["slug", "consumedToday"],
+              "required": [
+                "slug",
+                "consumedToday"
+              ],
               "properties": {
-                "slug": { "type": "string", "example": "subconscious/glm-5.3-marathon" },
+                "slug": {
+                  "type": "string",
+                  "example": "subconscious/glm-5.3-marathon"
+                },
                 "consumedToday": {
                   "type": "integer",
                   "description": "Tokens consumed by this model since UTC midnight."
@@ -449,10 +1124,16 @@
       },
       "Credits": {
         "type": "object",
-        "required": ["balanceDollars", "overageThisPeriodDollars"],
+        "required": [
+          "balanceDollars",
+          "overageThisPeriodDollars"
+        ],
         "properties": {
           "balanceDollars": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "description": "Spendable credit balance in dollars. Null when the balance cannot be read."
           },
           "overageThisPeriodDollars": {
@@ -463,10 +1144,18 @@
       },
       "InvoiceUsage": {
         "type": "object",
-        "required": ["accruedThisPeriodDollars", "periodStart", "periodEnd", "limitDollars"],
+        "required": [
+          "accruedThisPeriodDollars",
+          "periodStart",
+          "periodEnd",
+          "limitDollars"
+        ],
         "properties": {
           "accruedThisPeriodDollars": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "description": "Usage so far this period at the organization's rates, in dollars. Null when the read failed; never shown as zero."
           },
           "periodStart": {
@@ -480,26 +1169,57 @@
             "description": "End of the current invoice period. The spend limit resets here."
           },
           "limitDollars": {
-            "type": ["number", "null"],
+            "type": [
+              "number",
+              "null"
+            ],
             "description": "The spend limit in dollars. Null when the organization has none enabled."
           }
         }
       },
       "CreditOrTokenAllowance": {
         "type": "object",
-        "required": ["basis", "percent", "resetAt"],
+        "required": [
+          "basis",
+          "percent",
+          "resetAt"
+        ],
         "properties": {
-          "basis": { "type": "string", "enum": ["credit", "tokens"] },
-          "percent": { "type": "number", "description": "Percent of today's allowance already used. Can exceed 100." },
-          "resetAt": { "type": "string", "format": "date-time", "description": "When the daily counter resets (UTC midnight)." }
+          "basis": {
+            "type": "string",
+            "enum": [
+              "credit",
+              "tokens"
+            ]
+          },
+          "percent": {
+            "type": "number",
+            "description": "Percent of today's allowance already used. Can exceed 100."
+          },
+          "resetAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the daily counter resets (UTC midnight)."
+          }
         }
       },
       "UnavailableAllowance": {
         "type": "object",
-        "required": ["basis", "resetAt"],
+        "required": [
+          "basis",
+          "resetAt"
+        ],
         "properties": {
-          "basis": { "type": "string", "enum": ["unavailable"] },
-          "resetAt": { "type": "string", "format": "date-time" }
+          "basis": {
+            "type": "string",
+            "enum": [
+              "unavailable"
+            ]
+          },
+          "resetAt": {
+            "type": "string",
+            "format": "date-time"
+          }
         }
       }
     }
