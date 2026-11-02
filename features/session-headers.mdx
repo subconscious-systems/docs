@@ -85,15 +85,25 @@ x-subconscious-client: my-agent
 
 Any value works. The value becomes the agent label shown next to your conversations. Labels are lowercased, separators are collapsed to hyphens, and the stored label is at most 64 characters. For example, `My Agent!` shows as `my-agent`.
 
-A present `x-subconscious-client` is the only way a request carrying generic session signals (the body session id, `x-session-id`, or `x-session-affinity`) gets a label. Those signals group requests into conversations, but the gateway never guesses which client sent them. The header is also terminal: when it is present, its value is the label, regardless of what other headers would suggest.
+A present `x-subconscious-client` is the only way a request carrying generic session signals (the body session id, `x-session-id`, or `x-session-affinity`) gets a label. Those signals group requests into conversations, but the gateway never guesses which client sent them. The `x-parent-session-id` header nests the request under the conversation whose session id it names, the same way the canonical parent header does. The client header is also terminal: when it is present, its value is the label, regardless of what other headers would suggest.
 
-## Body session id
+## Body-driven session affinity
 
-Some routers and SDKs put the session id in the request body instead of a header. The gateway accepts a top-level `session_id` field on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`. The value follows the same rules as a session header: 8 to 256 characters, one fresh value per conversation.
+Some routers and SDKs put the session id in the request body instead of a header. The gateway reads two body fields on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
 
-Two other spellings resolve to the same field: `sessionId`, and `providerOptions.gateway.sessionId`, the Vercel AI SDK convention. Clients built for the OpenRouter or Vercel AI Gateway session conventions therefore work without changes. When both a body session id and the generic headers are present, the body wins.
+### session_id
 
-A body session id groups requests like a session header does. It never names your client: send `x-subconscious-client` for that. The value is not forwarded to upstream providers.
+A top-level `session_id` follows the same rules as a session header: 8 to 256 characters, one fresh value per conversation.
+
+Two other spellings resolve to the same field: `sessionId`, and `providerOptions.gateway.sessionId`, the Vercel AI SDK convention. Clients built for the OpenRouter or Vercel AI Gateway session conventions therefore work without changes.
+
+A body session id groups requests like a session header does. When both a body session id and the generic session headers are present, the body wins. It never names your client: send `x-subconscious-client` for that. The value is not forwarded to upstream providers.
+
+### prompt_cache_key
+
+`prompt_cache_key` is an optional request field on `/v1/chat/completions` and `/v1/responses`. It is a fallback: it groups requests only when no session header or body session id is present.
+
+Clients often set it to a static per-user value, so two conversations on one API key can land in the same conversation row. We recommend a session header or a body session id instead.
 
 ## Subagents
 
@@ -142,19 +152,12 @@ subc claude
 
 ## Headers to avoid
 
-These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application has no officially supported behavior. Request grouping and cache-aware routing may still work, but the gateway will not identify your application from these names. Use your own `x-<your-app>-session-id` header, or `x-subconscious-client`, to name your traffic.
+These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application has no officially supported behavior.
 
 | Header | Why to avoid it |
 | --- | --- |
-| `x-subconscious-session-id` | Reserved for internal gateway routing. |
-| `x-session-id` | Part of the Pi and OpenCode client formats. The gateway groups requests carrying it, but never identifies the client from it. |
-| `x-session-affinity` | Part of the Pi and OpenCode client formats, with the same behavior. |
-| `x-parent-session-id` | Sent by OpenCode subagents to name their parent session. The gateway nests on it, but it is not a valid custom pair because it has no `<name>` of its own. |
+| `x-subconscious-session-id` | Reserved for internal gateway routing. A request carrying it is treated as forwarded by another Subconscious gateway. |
 | `x-claude-code-session-id` | Reserved for the Claude Code client. It labels your traffic as Claude Code. |
 | `x-subconscious-code-session-id` | Reserved for the Subconscious Code client. |
 
 The rule is simple: use one `x-<your-app>-session-id` header of your own, and send nothing from the list above.
-
-## prompt_cache_key
-
-`prompt_cache_key` is an optional request field on `/v1/chat/completions` and `/v1/responses`, not a header. It can be used as a fallback for routing session affinity when no headers are present. We recommend using a session header instead.
