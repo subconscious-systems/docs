@@ -192,16 +192,17 @@
                   "prompt_cache_key": {
                     "type": "string",
                     "maxLength": 256,
-                    "description": "Routing hint that groups requests into one conversation only when no session header or body session id is present. Clients often set it to a static per-user value, so a session header is the better choice. Forwarded upstream."
+                    "description": "Routing hint that groups requests into one conversation only when no session header or body session id is present. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   },
                   "session_id": {
                     "type": "string",
+                    "minLength": 8,
                     "maxLength": 256,
-                    "description": "Per-conversation session key, in the OpenRouter and Vercel AI Gateway conventions. Accepted spellings are session_id, sessionId, and providerOptions.gateway.sessionId. Groups requests into one conversation like a session header, and wins over the x-session-id and x-session-affinity headers. Between 8 and 256 characters. Never forwarded upstream. See [AI Gateway session affinity](https://vercel.com/docs/ai-gateway/models-and-providers/session-affinity) for the Vercel convention. For the `providerOptions` spelling, see [AI SDK Provider Options](https://ai-sdk.dev/docs/foundations/provider-options)."
+                    "description": "Body session id, also spelled sessionId and providerOptions.gateway.sessionId. Between 8 and 256 characters. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   },
                   "providerOptions": {
                     "type": "object",
-                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id spelling. Never forwarded upstream. See [AI SDK Provider Options](https://ai-sdk.dev/docs/foundations/provider-options) for the client shape."
+                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   }
                 }
               }
@@ -312,7 +313,7 @@
             "name": "x-subconscious-client",
             "in": "header",
             "required": false,
-            "description": "Labels your traffic in usage views. Any value works. The value is lowercased, separators are collapsed, and the stored label is at most 64 characters.",
+            "description": "Labels your traffic in usage views. See [Request correlation](https://subconscious.dev/features/request-correlation).",
             "schema": {
               "type": "string"
             }
@@ -321,7 +322,7 @@
             "name": "x-yourapp-session-id",
             "in": "header",
             "required": false,
-            "description": "**Optional.** Groups requests into one conversation. Send `x-yourapp-session-id` (replace `yourapp` with your app name, for example `x-langchain-session-id`). **If you omit it**, the gateway uses the body session id (`session_id`, `sessionId`, or `providerOptions.gateway.sessionId`), and then `prompt_cache_key` where the endpoint accepts it. Both fallbacks group requests the same way. A body session id on the same request takes precedence over this header. See [Request correlation](https://subconscious.dev/features/request-correlation) for the value rules.",
+            "description": "Groups requests into one conversation (replace `yourapp` with your app name). See [Session affinity](https://subconscious.dev/features/session-affinity).",
             "schema": {
               "type": "string"
             }
@@ -330,7 +331,7 @@
             "name": "x-yourapp-parent-session-id",
             "in": "header",
             "required": false,
-            "description": "**Optional.** Nests a subagent under the conversation that spawned it. Send `x-yourapp-parent-session-id` with the same `yourapp` name as the session header. **If you omit it**, the gateway reads `x-parent-session-id` and the Codex parent thread headers, which nest the subagent the same way. A parent header whose `yourapp` name does not match the session header is ignored. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
+            "description": "Nests a subagent under the conversation that spawned it. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
             "schema": {
               "type": "string"
             }
@@ -630,12 +631,13 @@
                   },
                   "session_id": {
                     "type": "string",
+                    "minLength": 8,
                     "maxLength": 256,
-                    "description": "Per-conversation session key, in the OpenRouter and Vercel AI Gateway conventions. Accepted spellings are session_id, sessionId, and providerOptions.gateway.sessionId. Groups requests into one conversation like a session header, and wins over the x-session-id and x-session-affinity headers. Between 8 and 256 characters. Never forwarded upstream. See [AI Gateway session affinity](https://vercel.com/docs/ai-gateway/models-and-providers/session-affinity) for the Vercel convention. For the `providerOptions` spelling, see [AI SDK Provider Options](https://ai-sdk.dev/docs/foundations/provider-options)."
+                    "description": "Body session id, also spelled sessionId and providerOptions.gateway.sessionId. Between 8 and 256 characters. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   },
                   "providerOptions": {
                     "type": "object",
-                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id spelling. Never forwarded upstream. See [AI SDK Provider Options](https://ai-sdk.dev/docs/foundations/provider-options) for the client shape."
+                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   }
                 }
               }
@@ -763,7 +765,7 @@
             "name": "x-subconscious-client",
             "in": "header",
             "required": false,
-            "description": "Labels your traffic in usage views. Any value works. The value is lowercased, separators are collapsed, and the stored label is at most 64 characters.",
+            "description": "Labels your traffic in usage views. See [Request correlation](https://subconscious.dev/features/request-correlation).",
             "schema": {
               "type": "string"
             }
@@ -772,7 +774,7 @@
             "name": "x-yourapp-session-id",
             "in": "header",
             "required": false,
-            "description": "**Optional.** Groups requests into one conversation. Send `x-yourapp-session-id` (replace `yourapp` with your app name, for example `x-langchain-session-id`). **If you omit it**, the gateway uses the body session id (`session_id`, `sessionId`, or `providerOptions.gateway.sessionId`), and then `prompt_cache_key` where the endpoint accepts it. Both fallbacks group requests the same way. A body session id on the same request takes precedence over this header. See [Request correlation](https://subconscious.dev/features/request-correlation) for the value rules.",
+            "description": "Groups requests into one conversation (replace `yourapp` with your app name). See [Session affinity](https://subconscious.dev/features/session-affinity).",
             "schema": {
               "type": "string"
             }
@@ -781,7 +783,7 @@
             "name": "x-yourapp-parent-session-id",
             "in": "header",
             "required": false,
-            "description": "**Optional.** Nests a subagent under the conversation that spawned it. Send `x-yourapp-parent-session-id` with the same `yourapp` name as the session header. **If you omit it**, the gateway reads `x-parent-session-id` and the Codex parent thread headers, which nest the subagent the same way. A parent header whose `yourapp` name does not match the session header is ignored. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
+            "description": "Nests a subagent under the conversation that spawned it. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
             "schema": {
               "type": "string"
             }
@@ -1101,7 +1103,7 @@
             "name": "x-subconscious-client",
             "in": "header",
             "required": false,
-            "description": "Labels your traffic in usage views. Any value works. The value is lowercased, separators are collapsed, and the stored label is at most 64 characters.",
+            "description": "Labels your traffic in usage views. See [Request correlation](https://subconscious.dev/features/request-correlation).",
             "schema": {
               "type": "string"
             }
@@ -1110,7 +1112,7 @@
             "name": "x-yourapp-session-id",
             "in": "header",
             "required": false,
-            "description": "**Optional.** Groups requests into one conversation. Send `x-yourapp-session-id` (replace `yourapp` with your app name, for example `x-langchain-session-id`). **If you omit it**, the gateway uses the body session id (`session_id`, `sessionId`, or `providerOptions.gateway.sessionId`), and then `prompt_cache_key` where the endpoint accepts it. Both fallbacks group requests the same way. A body session id on the same request takes precedence over this header. See [Request correlation](https://subconscious.dev/features/request-correlation) for the value rules.",
+            "description": "Groups requests into one conversation (replace `yourapp` with your app name). See [Session affinity](https://subconscious.dev/features/session-affinity).",
             "schema": {
               "type": "string"
             }
@@ -1119,7 +1121,7 @@
             "name": "x-yourapp-parent-session-id",
             "in": "header",
             "required": false,
-            "description": "**Optional.** Nests a subagent under the conversation that spawned it. Send `x-yourapp-parent-session-id` with the same `yourapp` name as the session header. **If you omit it**, the gateway reads `x-parent-session-id` and the Codex parent thread headers, which nest the subagent the same way. A parent header whose `yourapp` name does not match the session header is ignored. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
+            "description": "Nests a subagent under the conversation that spawned it. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
             "schema": {
               "type": "string"
             }
@@ -1214,16 +1216,17 @@
                   "prompt_cache_key": {
                     "type": "string",
                     "maxLength": 256,
-                    "description": "Routing hint that groups requests into one conversation only when no session header or body session id is present. Clients often set it to a static per-user value, so a session header is the better choice. Forwarded upstream."
+                    "description": "Routing hint that groups requests into one conversation only when no session header or body session id is present. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   },
                   "session_id": {
                     "type": "string",
+                    "minLength": 8,
                     "maxLength": 256,
-                    "description": "Per-conversation session key, in the OpenRouter and Vercel AI Gateway conventions. Accepted spellings are session_id, sessionId, and providerOptions.gateway.sessionId. Groups requests into one conversation like a session header, and wins over the x-session-id and x-session-affinity headers. Between 8 and 256 characters. Never forwarded upstream. See [AI Gateway session affinity](https://vercel.com/docs/ai-gateway/models-and-providers/session-affinity) for the Vercel convention. For the `providerOptions` spelling, see [AI SDK Provider Options](https://ai-sdk.dev/docs/foundations/provider-options)."
+                    "description": "Body session id, also spelled sessionId and providerOptions.gateway.sessionId. Between 8 and 256 characters. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   },
                   "providerOptions": {
                     "type": "object",
-                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id spelling. Never forwarded upstream. See [AI SDK Provider Options](https://ai-sdk.dev/docs/foundations/provider-options) for the client shape."
+                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   },
                   "return_subconscious_cache_stats": {
                     "type": "boolean",
