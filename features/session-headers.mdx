@@ -73,6 +73,28 @@ const response = await client.chat.completions.create({
 
 </CodeGroup>
 
+There are two ways to name your client in usage views. The `<name>` of your session header is one. The other is a dedicated client header, described next, which also covers clients that use generic session signals.
+
+## Name your client
+
+Send `x-subconscious-client` to label your traffic in usage views:
+
+```
+x-subconscious-client: my-agent
+```
+
+Any value works. The value becomes the agent label shown next to your conversations. Labels are lowercased, separators are collapsed to hyphens, and the stored label is at most 64 characters. For example, `My Agent!` shows as `my-agent`.
+
+A present `x-subconscious-client` is the only way a request carrying generic session signals (the body session id, `x-session-id`, or `x-session-affinity`) gets a label. Those signals group requests into conversations, but the gateway never guesses which client sent them. The header is also terminal: when it is present, its value is the label, regardless of what other headers would suggest.
+
+## Body session id
+
+Some routers and SDKs put the session id in the request body instead of a header. The gateway accepts a top-level `session_id` field on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`. The value follows the same rules as a session header: 8 to 256 characters, one fresh value per conversation.
+
+Two other spellings resolve to the same field: `sessionId`, and `providerOptions.gateway.sessionId`, the Vercel AI SDK convention. Clients built for the OpenRouter or Vercel AI Gateway session conventions therefore work without changes. When both a body session id and the generic headers are present, the body wins.
+
+A body session id groups requests like a session header does. It never names your client: send `x-subconscious-client` for that. The value is not forwarded to upstream providers.
+
 ## Subagents
 
 An agent that spawns a subagent sends two independent streams of requests. The subagent starts with its own system prompt and its own history, so it cannot reuse the parent session header. Without a nest signal the gateway records the subagent as a separate top-level conversation.
@@ -120,13 +142,14 @@ subc claude
 
 ## Headers to avoid
 
-These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application does not have officially supported behavior. Request grouping and cache-aware routing may still work, but conversations may be misidentified as coming from a particular coding agent.
+These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application has no officially supported behavior. Request grouping and cache-aware routing may still work, but the gateway will not identify your application from these names. Use your own `x-<your-app>-session-id` header, or `x-subconscious-client`, to name your traffic.
 
 | Header | Why to avoid it |
 | --- | --- |
 | `x-subconscious-session-id` | Reserved for internal gateway routing. |
-| `x-session-id` | Part of the Pi and OpenCode client formats. Sending it makes the gateway guess which of those clients you are. |
-| `x-session-affinity` | Part of the Pi and OpenCode client formats, with the same risk. |
+| `x-session-id` | Part of the Pi and OpenCode client formats. The gateway groups requests carrying it, but never identifies the client from it. |
+| `x-session-affinity` | Part of the Pi and OpenCode client formats, with the same behavior. |
+| `x-parent-session-id` | Sent by OpenCode subagents to name their parent session. The gateway nests on it, but it is not a valid custom pair because it has no `<name>` of its own. |
 | `x-claude-code-session-id` | Reserved for the Claude Code client. It labels your traffic as Claude Code. |
 | `x-subconscious-code-session-id` | Reserved for the Subconscious Code client. |
 
