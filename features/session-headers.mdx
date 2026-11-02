@@ -1,14 +1,20 @@
 ---
 title: "Session headers"
-description: "Group your requests into conversations with a session header, so multi-turn work stays readable in usage views."
+description: "Group your requests into conversations and subagents with session headers, to optimize cache-hit rate and request correlation."
 icon: "link"
 ---
 
-Every request you send is metered on its own. If your application runs multi-turn work, one request at a time is hard to read: usage views show a long list of isolated entries instead of the conversations your users actually had. A session header fixes that. Send one stable header value per conversation, and the gateway groups every request that shares it into a single conversation.
+Our system is built to serve long-context, multi-turn conversations. When serving multi-turn conversations, it is important to continually route the follow-up requests to the same GPU that served the previous request, to optimize for KV cache hit ratios.
 
-This page describes the header contract for custom applications and harnesses. Supported coding agents such as Claude Code, Codex, OpenCode, and Pi are detected automatically from their own headers, and need nothing from this page.
+Our gateway groups requests from the same session into "conversations" and routes follow-up LLM requests to the same GPU workers. There are ways to provide session headers to our inference service that make this more consistent and efficient.
 
-## The header to send
+Additionally, with proper session-affinity, you will get the most consistent request-correlation experience in the conversations page, demonstrating the benefits of our context compression.
+
+<Frame caption="Context growth for a single session in the conversations page. Session affinity keeps follow-up requests on the GPU that holds the conversation's KV cache, so cached context accumulates instead of being re-sent.">
+  <img src="/images/session-context-over-time.png" alt="Conversation dashboard showing turns, tokens, background tokens, trace time, tool calls, and a context-over-time chart for one session" />
+</Frame>
+
+## Custom agent applications
 
 Pick a header name that names your application, ending in `-session-id` and starting with `x-`. For example, an integration built on LangChain could send:
 
@@ -69,9 +75,9 @@ const response = await client.chat.completions.create({
 
 ## Subagents
 
-If your application spawns subagents, one session header per conversation is not enough: children would merge into the parent conversation. Give each spawned subagent its own session id, and name the parent's.
+An agent that spawns a subagent sends two independent streams of requests. The subagent starts with its own system prompt and its own history, so it cannot reuse the parent session header. Without a nest signal the gateway records the subagent as a separate top-level conversation.
 
-The parent header must use the same `<name>` as the session header. A parent header whose `<name>` does not match the session header is ignored.
+Give each spawned subagent its own session id, and name the parent's. The parent header must use the same `<name>` as the session header. A parent header whose `<name>` does not match the session header is ignored.
 
 ```
 x-langchain-session-id: 4b8d2f0a-91c4-4e7a-b3d2-8f1e6c5a9d21
@@ -87,11 +93,34 @@ Follow these four rules:
 - Point at the conversation that directly spawned the subagent, not at the root of the whole run. A subagent of a subagent names its immediate parent.
 - The link fills in on a later request if the subagent's first request arrives before its parent has sent anything.
 
-Each subagent conversation appears nested under its parent in usage views, and keeps its own requests and usage.
+The subagent conversation nests under the spawning conversation instead of appearing top-level. The parent conversation lists its subagents in a **Subagent sessions** table, and each row links to the child conversation.
+
+<Frame caption="Subagent sessions for one conversation. Each row is a subagent conversation with its own model, request count, tool calls, and token usage.">
+  <img src="/images/subagent-sessions.png" alt="Subagent sessions table showing two Claude Code subagent conversations with model, API key, activity, usage, and last active time" />
+</Frame>
+
+## Headerless session affinity
+
+When you are unable to provide a session header like above for some reason, our gateway will use prefix hash and other heuristic measures to attempt to correlate requests into a session. This is generally quite reliable, but it requires more DB and cache lookups to serve inference, which can lead to a slight decrease in throughput.
+
+For this reason, we recommend providing a consistent header format to optimize your end-user experience.
+
+## Coding agents
+
+Coding agents like Claude Code, Codex, OpenCode, and Pi natively send out session ids for long running workloads, so this session affinity should work out of the box. We recommend using these agents in context with our CLI to enhance the experience. This will make it easier to auto-discover model capabilities and route inference requests to our servers.
+
+```
+npm install -g subconscious-cli
+subc login
+subc claude
+# subc codex
+# subc opencode
+# subc pi
+```
 
 ## Headers to avoid
 
-These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application does not group your traffic, and some of them actively change how your requests are handled.
+These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application does not have officially supported behavior. Request grouping and cache-aware routing may still work, but conversations may be misidentified as coming from a particular coding agent.
 
 | Header | Why to avoid it |
 | --- | --- |
