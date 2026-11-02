@@ -1,14 +1,20 @@
 ---
 title: "Session headers"
-description: "Group your requests into conversations with a session header, so multi-turn work stays readable in usage views."
+description: "Group your requests into conversations and subagents with session headers to optimize cache-hit rate and request-correllation."
 icon: "link"
 ---
 
-Every request you send is metered on its own. If your application runs multi-turn work, one request at a time is hard to read: usage views show a long list of isolated entries instead of the conversations your users actually had. A session header fixes that. Send one stable header value per conversation, and the gateway groups every request that shares it into a single conversation.
+Our system is built to serve long-context, multi-turn conversations. When serving multi-turn conversations, it is important to continually route the follow-up requests to the same GPU that served the previous to optimize for KV cache hit ratios.
 
-This page describes the header contract for custom applications and harnesses. Supported coding agents such as Claude Code, Codex, OpenCode, and Pi already send their own identity, and need nothing from this page.
+Our gateway groups requests from the same session into "conversations" and routes follow-up LLM requests to the same GPU workers. There are ways to provide session headers to our inference service that makes this more consistent and efficient.
 
-## The header to send
+Additionally, with proper session-affinity, you will get the most consistent request-correllation experience in the conversations page, demonstrating the benefits of our context compression.
+
+<Frame caption="Context growth for a single session in the conversations page. Session affinity keeps follow-up requests on the GPU that holds the conversation's KV cache, so cached context accumulates instead of being re-sent.">
+  <img src="/images/session-context-over-time.png" alt="Conversation dashboard showing turns, tokens, background tokens, trace time, tool calls, and a context-over-time chart for one session" />
+</Frame>
+
+## Custom agent applications
 
 Pick a header name that names your application, ending in `-session-id` and starting with `x-`. For example, an integration built on LangChain could send:
 
@@ -63,9 +69,28 @@ const response = await client.chat.completions.create({
 
 </CodeGroup>
 
+## Headerless session affinity
+
+When you are unable to provide a session header like above for some reason, our gateway will use prefix hash and other heuristic measures to attempt to correllate requests into a session. This is generally quite reliably, but requires more DB and cache lookups to serve inference, which can lead to a slight decrease in throughput.
+
+For this reason, we recommend providing a consistent header format to optimize your end-user experience.
+
+## Coding agents
+
+Coding agents like Claude Code, Codex, OpenCode, and Pi natively send out session ids for long running workloads, so this session affinity should work out of the box. We recommend using these agents in context with our CLI to enhance the experience. This will make it easier to auto-discover model capabilities and route inference requests to our servers.
+
+```
+npm install -g subconscious-cli
+subc login
+subc claude
+# subc codex
+# subc opencode
+# subc pi
+```
+
 ## Headers to avoid
 
-These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application does not group your traffic, and some of them actively change how your requests are handled.
+These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application does not have officially supported behavior. Request grouping and cache-aware routing may still work, but conversations may be misidentified as coming from a particular coding agent.
 
 | Header | Why to avoid it |
 | --- | --- |
@@ -77,16 +102,25 @@ These header names are reserved for specific clients or for internal gateway rou
 | `x-litellm-session-id` | Reserved for LiteLLM. |
 | `x-mcp-session-id` and `mcp-session-id` | Reserved for MCP transport sessions. |
 
-The rule is simple: use one `x-<your-app>-session-id` header of your own, and send nothing from the list above.
-
 ## Optional additions
 
 A few extra signals are accepted alongside your session header:
 
-- `x-subconscious-trace-id` groups requests by a flow or trace instead of a conversation. It takes priority over session headers, and pairs with `x-subconscious-parent-trace-id` to nest flows inside each other. Use it when your application thinks in terms of runs rather than chats.
-- `prompt_cache_key` in the request body also groups requests. If your application already sets it per conversation for caching, it works without any header.
-- `x-client-request-id` identifies a single request, not a conversation. Send it alongside the session header when you want to correlate a specific request in your own logs.
+- `x-subconscious-trace-id` groups requests by a flow or trace instead of a conversation. It takes priority over session headers, and pairs with `x-subconscious-parent-trace-id` to nest flows inside each other.
 
-## Attribution
+## Subagent correlation
 
-Grouped conversations appear in usage views with the requests that formed them. The gateway labels traffic from known coding agents automatically. A custom session header does not create an agent label, so your conversations appear as plain grouped requests. Do not send `x-subconscious-client` to fake a label: only known agent names are recognized, and anything else is ignored.
+An agent that spawns a subagent sends two independent streams of requests. The subagent starts with its own system prompt and its own history, so it cannot reuse the parent session header. Without a nest signal the gateway records the subagent as a separate top-level conversation.
+
+Send a parent reference with the subagent's own identity, and the subagent conversation nests under the spawning conversation instead. Both sides then appear in the same place: the parent conversation lists its subagents in a **Subagent sessions** table, and each row links to the child conversation.
+
+| Pair | Use for |
+| --- | --- |
+| `x-subconscious-trace-id` and `x-subconscious-parent-trace-id` | Any integration. The subagent sends its own trace id, and sets the parent trace id to the value the parent conversation already sends. |
+| `x-subconscious-agent-id` and `x-subconscious-parent-agent-id` | Integrations that already send a session header. The gateway groups as `<session>:<agent>` and nests under `<session>:<parent-agent>`. |
+
+For nesting deeper than one level, point the parent reference at the conversation that directly spawned the subagent, not at the root.
+
+<Frame caption="Subagent sessions for one conversation. Each row is a subagent conversation with its own model, request count, tool calls, and token usage.">
+  <img src="/images/subagent-sessions.png" alt="Subagent sessions table showing two Claude Code subagent conversations with model, API key, activity, usage, and last active time" />
+</Frame>
