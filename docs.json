@@ -47,7 +47,9 @@
               "features/subconscious-cache",
               "features/model-discovery",
               "features/management-api-keys",
-              "features/session-headers"
+              "features/session-affinity",
+              "features/request-correlation",
+              "features/subagent-correlation"
             ]
           },
           {

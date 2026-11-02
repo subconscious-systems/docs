@@ -1,0 +1,73 @@
+---
+title: "Session affinity"
+description: "Keep a conversation's follow-up requests on the worker that already holds its KV cache, so cached context is reused instead of recomputed."
+icon: "link"
+---
+
+Multi-turn agent conversations can benefit from session-aware routing to maximize cache-hit ratio. This minimizes cost and response latency. Our gateway groups related requests into a session, binds the session to the worker that a specific worker, and tries to route future requests to that worker if it is not overloaded.
+
+## How the gateway does it
+
+The gateway reads a session identity from the request or derives it from the content of prompt. It records which worker served that session, and it moves that worker to the front of the line when it comes time to serve a subsequent request in the session. Each successful request renews the binding, so an active conversation keeps its affinity.
+
+Our session affinity approach is meant to work out of the box with little to no changes required for your agent implementation. It is compatible with most multi-turn request frameworks for session affinity, including OpenRouter, Vercel AI gateway, Claude Code, Codex, OpenCode, Pi, Langchain, and Copilot.
+
+## Identify your session
+
+The gateway accepts several session signals. Pick the option your integration can actually send, and send the same value on every request in the conversation.
+
+| Option | Send | Gateway priority | Our recommendation |
+| --- | --- | --- | --- |
+| Body session id | `session_id`, `sessionId`, or `providerOptions.gateway.sessionId` in the request body | 1 | First choice when your SDK cannot set headers. Integrations built for the [Vercel AI Gateway session convention](https://vercel.com/docs/ai-gateway/models-and-providers/session-affinity) or OpenRouter work without changes. |
+| Off-the-shelf session headers | `x-session-id` or `x-session-affinity`, and `x-parent-session-id` for subagents | 2 | First choice when your client already sends them. Many providers implement these names, so an existing integration works without changes. |
+| Your own session header | `x-yourapp-session-id`, and `x-yourapp-parent-session-id` for subagents | 3 | Recommended for a custom application. It also labels your traffic in usage views. |
+| `prompt_cache_key` | The request body field | 4 | A fallback only. Clients often set it to a static per-user value, so separate conversations can merge. |
+| No session signal | Nothing | 5 | Last resort. The gateway fingerprints the conversation, which costs extra database and cache lookups. |
+
+The gateway priority column is the resolution order inside the gateway. When one request carries two signals, the lower number wins. A body session id therefore overrides a custom session header on the same request, and so-on.
+
+Options rarely conflict in normal use, because an integration sends one of them.
+
+All signals are optional, and all of them work the same on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
+
+### Pick your path
+
+For an SDK that already sets a body session id, send nothing else. The SDK's value groups the conversation and binds it to a worker.
+
+For a custom application, send your own `x-<name>-session-id` header. Add `x-subconscious-client` when the label you want in usage views differs from the header name. The naming rules and value rules live in [Request correlation](/features/request-correlation#your-own-session-header).
+
+## Sessions without a session signal
+
+Traffic that sends no session id is not uncorrelated. The gateway derives an identity from the conversation itself, because every request in a conversation repeats the same history. It tries three things in order.
+
+1. **The assistant turn chain.** The gateway fingerprints the assistant message that this request's history ends with, then looks for a turn it already served with the same fingerprint. A match names the conversation that turn belongs to. This is the common case, because every turn after the first carries the previous assistant message.
+2. **The prompt anchor.** When the chain finds nothing, the gateway fingerprints the last user message and looks for a conversation that announced the same prompt. Our CLI and its agent hooks announce prompts for the agents they launch.
+3. **A chain-scoped conversation.** When both misses, the gateway mints a chain identity and starts a conversation for it. The conversation is correct but scoped to that one chain.
+
+Each step fails open. An ambiguous match leaves the request unbound rather than attaching it to the wrong conversation.
+
+This path costs more than a client-provided session. It needs database and cache lookups before inference can route, and a heavy share of it can reduce throughput slightly. Send a session signal to avoid it.
+
+## What the gateway forwards
+
+Toward a provider endpoint, the gateway sends `x-session-affinity` as a SHA-256 digest of the session key. Providers that support replica affinity use it to land on the same replica for a conversation. The raw session value never leaves the gateway, and `session_id` in the body is never forwarded upstream.
+
+Toward a regional cell, the gateway sends its own session header with the same kind of digest.
+
+## Coding agents
+
+Coding agents like Claude Code, Codex, OpenCode, and Pi send session ids natively for long-running workloads, so affinity works out of the box. We recommend running them through our CLI, which also discovers model capabilities for you.
+
+```
+npm install -g subconscious-cli
+subc login
+subc claude
+# subc codex
+# subc opencode
+# subc pi
+```
+
+## Next steps
+
+- [Request correlation](/features/request-correlation): conversations and client labels in usage views.
+- [Subagent correlation](/features/subagent-correlation): nest spawned conversations under their parent.
