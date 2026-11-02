@@ -46,7 +46,8 @@
               "features/thinking",
               "features/subconscious-cache",
               "features/model-discovery",
-              "features/management-api-keys"
+              "features/management-api-keys",
+              "features/session-headers"
             ]
           },
           {
