@@ -124,18 +124,14 @@ These header names are reserved for specific clients or for internal gateway rou
 
 | Header | Why to avoid it |
 | --- | --- |
-| `x-subconscious-session-id` | Reserved for internal gateway routing. Requests carrying it are treated as forwarded by another Subconscious gateway, not as your own session. |
+| `x-subconscious-session-id` | Reserved for internal gateway routing. |
 | `x-session-id` | Part of the Pi and OpenCode client formats. Sending it makes the gateway guess which of those clients you are. |
 | `x-session-affinity` | Part of the Pi and OpenCode client formats, with the same risk. |
 | `x-claude-code-session-id` | Reserved for the Claude Code client. It labels your traffic as Claude Code. |
 | `x-subconscious-code-session-id` | Reserved for the Subconscious Code client. |
-| `x-litellm-session-id` | Reserved for LiteLLM. |
-| `x-mcp-session-id` and `mcp-session-id` | Reserved for MCP transport sessions. |
 
 The rule is simple: use one `x-<your-app>-session-id` header of your own, and send nothing from the list above.
 
 ## prompt_cache_key
 
-`prompt_cache_key` is a request field on `/v1/chat/completions` and `/v1/responses`, not a header. Its job is prompt caching: the provider reuses cached prompt prefixes across requests that share the value, which lowers latency and cost for similar requests. The gateway forwards it upstream and echoes the value you sent on the response.
-
-It does not group requests into conversations. If you send both a session header and `prompt_cache_key`, the session header decides the conversation, so scope the cache key to whatever you want cached, not to a conversation.
+`prompt_cache_key` is an optional request field on `/v1/chat/completions` and `/v1/responses`, not a header. It can be used as a fallback for routing session affinity when no headers are present. We recommend using a session header instead.
