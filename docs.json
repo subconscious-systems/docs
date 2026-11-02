@@ -76,7 +76,8 @@
               "api-reference/models",
               "api-reference/platform-models",
               "api-reference/chat-completions",
-              "api-reference/messages"
+              "api-reference/messages",
+              "api-reference/responses"
             ]
           },
           {

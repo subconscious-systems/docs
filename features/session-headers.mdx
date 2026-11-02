@@ -89,7 +89,7 @@ A present `x-subconscious-client` is the only way a request carrying generic ses
 
 ## Body-driven session affinity
 
-Some routers and SDKs put the session id in the request body instead of a header. The gateway reads two body fields on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
+Some routers and SDKs put the session id in the request body instead of a header. The gateway reads two body fields on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`. Each endpoint in the [API reference](/api-reference/chat-completions) lists these fields and the session headers it accepts.
 
 ### session_id
 
