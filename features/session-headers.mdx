@@ -6,7 +6,7 @@ icon: "link"
 
 Every request you send is metered on its own. If your application runs multi-turn work, one request at a time is hard to read: usage views show a long list of isolated entries instead of the conversations your users actually had. A session header fixes that. Send one stable header value per conversation, and the gateway groups every request that shares it into a single conversation.
 
-This page describes the header contract for custom applications and harnesses. Supported coding agents such as Claude Code, Codex, OpenCode, and Pi already send their own identity, and need nothing from this page.
+This page describes the header contract for custom applications and harnesses. Supported coding agents such as Claude Code, Codex, OpenCode, and Pi are detected automatically from their own headers, and need nothing from this page.
 
 ## The header to send
 
@@ -16,14 +16,18 @@ Pick a header name that names your application, ending in `-session-id` and star
 x-langchain-session-id: 7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90
 ```
 
-Any header of the form `x-<name>-session-id` is accepted, as long as the name is not reserved (see the next section). The gateway treats it as your session identity.
+Any header of the form `x-<name>-session-id` is accepted, as long as the name is not reserved (see [Headers to avoid](#headers-to-avoid)). The gateway treats it as your session identity.
+
+The `<name>` part also becomes the agent label shown next to your conversations in usage views, so `x-langchain-session-id` shows as `langchain`. Pick the name your users should see. Use lowercase letters, digits, hyphens, and underscores. Values are lowercased before they are stored.
 
 Follow these rules for the value:
 
 - Mint a fresh value when a conversation starts, such as a UUID. Do not reuse values across conversations.
 - Send the same value on every request that belongs to that conversation, including retries and tool-loop turns.
 - Keep the value between 8 and 256 characters. Shorter or longer values are ignored.
-- The header is read before any protocol translation, so it works the same on `/v1/chat/completions` and `/v1/messages`.
+- The header is read before any protocol translation, so it works the same on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
+
+If you want to correlate one specific request in your own logs, send `x-client-request-id` alongside the session header. It identifies a single request, not a conversation.
 
 <CodeGroup>
 
@@ -63,6 +67,28 @@ const response = await client.chat.completions.create({
 
 </CodeGroup>
 
+## Subagents
+
+If your application spawns subagents, one session header per conversation is not enough: children would merge into the parent conversation. Give each spawned subagent its own session id, and name the parent's.
+
+The parent header must use the same `<name>` as the session header. A parent header whose `<name>` does not match the session header is ignored.
+
+```
+x-langchain-session-id: 4b8d2f0a-91c4-4e7a-b3d2-8f1e6c5a9d21
+x-langchain-parent-session-id: 7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90
+```
+
+The first value is the subagent's own session id. The second value is the session id of the conversation that spawned it, exactly as that conversation sends it.
+
+Follow these four rules:
+
+- Give each spawned subagent a fresh session id of its own. Never reuse the parent's session id for a child.
+- The parent value is the parent's session id exactly as the parent sends it. Do not transform it.
+- Point at the conversation that directly spawned the subagent, not at the root of the whole run. A subagent of a subagent names its immediate parent.
+- The link fills in on a later request if the subagent's first request arrives before its parent has sent anything.
+
+Each subagent conversation appears nested under its parent in usage views, and keeps its own requests and usage.
+
 ## Headers to avoid
 
 These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application does not group your traffic, and some of them actively change how your requests are handled.
@@ -79,14 +105,8 @@ These header names are reserved for specific clients or for internal gateway rou
 
 The rule is simple: use one `x-<your-app>-session-id` header of your own, and send nothing from the list above.
 
-## Optional additions
+## prompt_cache_key
 
-A few extra signals are accepted alongside your session header:
+`prompt_cache_key` is a request field on `/v1/chat/completions` and `/v1/responses`, not a header. Its job is prompt caching: the provider reuses cached prompt prefixes across requests that share the value, which lowers latency and cost for similar requests. The gateway forwards it upstream and echoes the value you sent on the response.
 
-- `x-subconscious-trace-id` groups requests by a flow or trace instead of a conversation. It takes priority over session headers, and pairs with `x-subconscious-parent-trace-id` to nest flows inside each other. Use it when your application thinks in terms of runs rather than chats.
-- `prompt_cache_key` in the request body also groups requests. If your application already sets it per conversation for caching, it works without any header.
-- `x-client-request-id` identifies a single request, not a conversation. Send it alongside the session header when you want to correlate a specific request in your own logs.
-
-## Attribution
-
-Grouped conversations appear in usage views with the requests that formed them. The gateway labels traffic from known coding agents automatically. A custom session header does not create an agent label, so your conversations appear as plain grouped requests. Do not send `x-subconscious-client` to fake a label: only known agent names are recognized, and anything else is ignored.
+It does not group requests into conversations. If you send both a session header and `prompt_cache_key`, the session header decides the conversation, so scope the cache key to whatever you want cached, not to a conversation.
