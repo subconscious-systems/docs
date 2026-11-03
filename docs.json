@@ -47,7 +47,9 @@
               "features/subconscious-cache",
               "features/model-discovery",
               "features/management-api-keys",
-              "features/session-headers"
+              "features/session-affinity",
+              "features/request-correlation",
+              "features/subagent-correlation"
             ]
           },
           {
@@ -76,7 +78,8 @@
               "api-reference/models",
               "api-reference/platform-models",
               "api-reference/chat-completions",
-              "api-reference/messages"
+              "api-reference/messages",
+              "api-reference/responses"
             ]
           },
           {

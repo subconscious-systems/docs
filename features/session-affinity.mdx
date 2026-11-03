@@ -1,0 +1,144 @@
+---
+title: "Session affinity"
+description: "Keep a conversation's follow-up requests on the worker that already holds its KV cache, so cached context is reused instead of recomputed."
+icon: "link"
+---
+
+Multi-turn agent conversations can benefit from session-aware routing to maximize cache-hit ratio. This minimizes cost and response latency. Our gateway groups related requests into a session, binds the session to the worker that a specific worker, and tries to route future requests to that worker if it is not overloaded.
+
+## How the gateway does it
+
+The gateway reads a session identity from the request or derives it from the content of prompt. It records which worker served that session, and it moves that worker to the front of the line when it comes time to serve a subsequent request in the session. Each successful request renews the binding, so an active conversation keeps its affinity.
+
+Our session affinity approach is meant to work out of the box with little to no changes required for your agent implementation. It is compatible with most multi-turn request frameworks for session affinity, including OpenRouter, Vercel AI gateway, Claude Code, Codex, OpenCode, Pi, Langchain, and Copilot.
+
+## Identify your session
+
+The gateway accepts several session signals. Pick the option your integration can actually send, and send the same value on every request in the conversation.
+
+| Option | Send | Gateway priority | Our recommendation |
+| --- | --- | --- | --- |
+| Body session id | `session_id`, `sessionId`, or `providerOptions.gateway.sessionId` in the request body | 1 | First choice when your SDK cannot set headers. Integrations built for the [Vercel AI Gateway session convention](https://vercel.com/docs/ai-gateway/models-and-providers/session-affinity) or OpenRouter work without changes. |
+| Off-the-shelf session headers | `x-session-id` or `x-session-affinity`, and `x-parent-session-id` for subagents | 2 | First choice when your client already sends them. Many providers implement these names, so an existing integration works without changes. |
+| Your own session header | `x-yourapp-session-id`, and `x-yourapp-parent-session-id` for subagents | 3 | Recommended for a custom application. It also labels your traffic in usage views. |
+| `prompt_cache_key` | The request body field | 4 | A fallback only. Clients often set it to a static per-user value, so separate conversations can merge. |
+| No session signal | Nothing | 5 | Last resort. The gateway fingerprints the conversation, which costs extra database and cache lookups. |
+
+The gateway priority column is the resolution order inside the gateway. When one request carries two signals, the lower number wins. A body session id therefore overrides a custom session header on the same request, and so-on.
+
+Options rarely conflict in normal use, because an integration sends one of them.
+
+All signals are optional, and all of them work the same on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
+
+### Pick your path
+
+For an SDK that already sets a body session id, send nothing else. The SDK's value groups the conversation and binds it to a worker.
+
+For a custom application, send your own `x-<name>-session-id` header. Add `x-subconscious-client` when the label you want in usage views differs from the header name. The naming rules and value rules live in [Request correlation](/features/request-correlation#your-own-session-header).
+
+## Your own session header
+
+Pick a header name that names your application, ending in `-session-id` and starting with `x-`. For example, an integration built on LangChain could send:
+
+```
+x-langchain-session-id: 7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90
+```
+
+Any header of the form `x-<name>-session-id` is accepted, as long as the name is not reserved. The gateway treats it as your session identity.
+
+The `<name>` part also becomes the agent label shown next to your conversations, so `x-langchain-session-id` shows as `langchain`. Pick the name your users should see. Use lowercase letters, digits, hyphens, and underscores. Values are lowercased before they are stored.
+
+See more about conversations, and about the labels shown next to them, on the [Request correlation](/features/request-correlation) page.
+
+Follow these rules for the value:
+
+- Mint a fresh value when a conversation starts, such as a UUID. Do not reuse values across conversations.
+- Send the same value on every request that belongs to that conversation, including retries and tool-loop turns.
+- Keep the value between 8 and 256 characters. Shorter or longer values are ignored.
+- The header is read before any protocol translation, so it works the same on `/v1/chat/completions`, `/v1/messages`, and `/v1/responses`.
+
+<CodeGroup>
+
+```python Python (OpenAI SDK)
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-api-key",
+    base_url="https://api.subconscious.dev/v1",
+)
+
+session_id = "7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90"
+
+response = client.chat.completions.create(
+    model="subconscious/glm-5.3-marathon",
+    messages=[{"role": "user", "content": "Refactor this function."}],
+    extra_headers={"x-langchain-session-id": session_id},
+)
+```
+
+```typescript Node.js (OpenAI SDK)
+import OpenAI from "openai";
+
+const client = new OpenAI({
+  apiKey: "your-api-key",
+  baseURL: "https://api.subconscious.dev/v1",
+  defaultHeaders: {
+    "x-langchain-session-id": "7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90",
+  },
+});
+
+const response = await client.chat.completions.create({
+  model: "subconscious/glm-5.3-marathon",
+  messages: [{ role: "user", content: "Refactor this function." }],
+});
+```
+
+</CodeGroup>
+
+There are two ways to name your client in usage views. The `<name>` of your session header is one. The other is `x-subconscious-client`, described in [Name your client](#name-your-client), which also covers clients that send generic session signals.
+
+## Headers to avoid
+
+These header names are reserved for specific clients or for internal gateway routing. Sending them from a custom application has no officially supported behavior.
+
+| Header | Why to avoid it |
+| --- | --- |
+| `x-subconscious-session-id` | Reserved for internal gateway routing. A request carrying it is treated as forwarded by another Subconscious gateway. |
+| `x-claude-code-session-id` | Reserved for the Claude Code client. It labels your traffic as Claude Code. |
+| `x-subconscious-code-session-id` | Reserved for the Subconscious Code client. |
+
+The rule is simple: use one `x-<name>-session-id` header of your own, and send nothing from the list above.
+
+
+## Sessions without a session signal
+
+When a request carries no session id, the gateway derives one from the assistant turns it already served. It differs from an opening-based fingerprint: it needs assistant history, so the first request of a conversation always starts a new session.
+
+Here is the whole mechanism.
+
+1. **Index each served turn.** After the gateway returns a response, it hashes the assistant turn it just served, with SHA-256, two ways: the assistant text, with line endings normalized and non-text blocks such as reasoning dropped, and the sorted set of tool-call ids. Both hashes are stored as keys that point at the chain the turn belongs to.
+2. **Hash the predecessor on the next request.** When a request arrives with no session id, the gateway finds the last assistant message in the inbound history and hashes it the same two ways. That message is the turn this request continues.
+3. **Resolve the chain from the key.** A key hit returns the chain the predecessor belongs to, and the chain carries the conversation it is bound to. So a follow-up turn rejoins its conversation without any client signal.
+
+A request whose history has no assistant message, or whose predecessor matches nothing, starts a new chain. The gateway binds that chain to a new conversation and records the chain id as the conversation key, so every later turn resolves through step 3.
+
+The keys are scoped to your organization and API key, so two customers running the same agent never share a session. Later turns, tool results, and new user messages do not change the hashes of earlier turns, so a conversation stays together as it grows. Tool-call order does not matter, because the ids are sorted before hashing.
+
+Two conversations that replay identical assistant text and tool ids produce the same keys, so the second one joins the first conversation. A script that regenerates a canned answer, or a fork that replays a history, does this. The gateway marks a key ambiguous once two different chains claim it, which stops a third conversation from joining, but the merge already happened for the second. Send a session id when you run many similar conversations.
+
+A failed lookup is not fatal. The request starts a fresh chain and gets its own conversation, which costs one conversation split rather than a wrong attachment.
+
+This path costs more than a client-provided session. It needs a cache read, and a database read when the cache has expired, before inference can route. A heavy share of it can reduce throughput slightly. Send a session signal to avoid it.
+
+## Coding agents
+
+Coding agents like Claude Code, Codex, OpenCode, and Pi send session ids natively for long-running workloads, so affinity works out of the box. We recommend running them through our CLI, which also discovers model capabilities for you.
+
+```
+npm install -g subconscious-cli
+subc login
+subc claude
+# subc codex
+# subc opencode
+# subc pi
+```

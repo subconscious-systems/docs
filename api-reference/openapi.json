@@ -188,6 +188,21 @@
                         "description": "If true, enables step-by-step reasoning. The model will output its reasoning in <think> tags before the final answer."
                       }
                     }
+                  },
+                  "prompt_cache_key": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "description": "Routing hint that groups requests into one conversation only when no session header or body session id is present. See [Session affinity](https://subconscious.dev/features/session-affinity)."
+                  },
+                  "session_id": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 256,
+                    "description": "Body session id, also spelled sessionId and providerOptions.gateway.sessionId. Between 8 and 256 characters. See [Session affinity](https://subconscious.dev/features/session-affinity)."
+                  },
+                  "providerOptions": {
+                    "type": "object",
+                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   }
                 }
               }
@@ -292,7 +307,36 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "x-subconscious-client",
+            "in": "header",
+            "required": false,
+            "description": "Labels your traffic in usage views. See [Request correlation](https://subconscious.dev/features/request-correlation).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-yourapp-session-id",
+            "in": "header",
+            "required": false,
+            "description": "Groups requests into one conversation (replace `yourapp` with your app name). See [Session affinity](https://subconscious.dev/features/session-affinity).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-yourapp-parent-session-id",
+            "in": "header",
+            "required": false,
+            "description": "Nests a subagent under the conversation that spawned it. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/messages": {
@@ -584,6 +628,16 @@
                         "description": "If false, disables automatic context compaction so you can control Subconscious Cache manually."
                       }
                     }
+                  },
+                  "session_id": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 256,
+                    "description": "Body session id, also spelled sessionId and providerOptions.gateway.sessionId. Between 8 and 256 characters. See [Session affinity](https://subconscious.dev/features/session-affinity)."
+                  },
+                  "providerOptions": {
+                    "type": "object",
+                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id. See [Session affinity](https://subconscious.dev/features/session-affinity)."
                   }
                 }
               }
@@ -705,7 +759,36 @@
           "500": {
             "description": "Internal server error"
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "x-subconscious-client",
+            "in": "header",
+            "required": false,
+            "description": "Labels your traffic in usage views. See [Request correlation](https://subconscious.dev/features/request-correlation).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-yourapp-session-id",
+            "in": "header",
+            "required": false,
+            "description": "Groups requests into one conversation (replace `yourapp` with your app name). See [Session affinity](https://subconscious.dev/features/session-affinity).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-yourapp-parent-session-id",
+            "in": "header",
+            "required": false,
+            "description": "Nests a subagent under the conversation that spawned it. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
       }
     },
     "/models": {
@@ -1008,6 +1091,215 @@
             "description": "Missing or invalid API key"
           }
         }
+      }
+    },
+    "/responses": {
+      "post": {
+        "operationId": "createResponse",
+        "summary": "Create a response",
+        "description": "Generates a model response from an input sequence. This endpoint is compatible with the OpenAI Responses API, which Codex and the Vercel AI SDK use. Session affinity works the same as on chat completions: a body session id, a session header, or prompt_cache_key groups requests into one conversation.",
+        "parameters": [
+          {
+            "name": "x-subconscious-client",
+            "in": "header",
+            "required": false,
+            "description": "Labels your traffic in usage views. See [Request correlation](https://subconscious.dev/features/request-correlation).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-yourapp-session-id",
+            "in": "header",
+            "required": false,
+            "description": "Groups requests into one conversation (replace `yourapp` with your app name). See [Session affinity](https://subconscious.dev/features/session-affinity).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-yourapp-parent-session-id",
+            "in": "header",
+            "required": false,
+            "description": "Nests a subagent under the conversation that spawned it. See [Subagent correlation](https://subconscious.dev/features/subagent-correlation).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "model",
+                  "input"
+                ],
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "description": "The model to use.",
+                    "enum": [
+                      "subconscious/glm-5.3-marathon"
+                    ],
+                    "example": "subconscious/glm-5.3-marathon"
+                  },
+                  "input": {
+                    "description": "The input to the model. A string, or an array of input items in the OpenAI Responses format, such as messages, function calls, and function call outputs.",
+                    "example": "Write a haiku about GPUs."
+                  },
+                  "instructions": {
+                    "type": "string",
+                    "description": "System instructions for the model."
+                  },
+                  "tools": {
+                    "type": "array",
+                    "description": "Tools the model may call. OpenAI function tool shapes are accepted.",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "tool_choice": {
+                    "description": "Controls which tool the model calls. Pass none, auto, required, or a function shape."
+                  },
+                  "parallel_tool_calls": {
+                    "type": "boolean",
+                    "description": "Whether the model may call several tools in one turn."
+                  },
+                  "reasoning": {
+                    "type": "object",
+                    "description": "Reasoning controls, such as the effort level."
+                  },
+                  "store": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Requests are not stored server-side; the field is accepted for compatibility."
+                  },
+                  "stream": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, the response is streamed as server-sent events, matching the OpenAI Responses API: response.created, response.output_text.delta, and response.completed."
+                  },
+                  "stream_options": {
+                    "type": "object",
+                    "description": "Streaming options, such as include_usage."
+                  },
+                  "max_output_tokens": {
+                    "type": "integer",
+                    "description": "Maximum number of tokens to generate in the response."
+                  },
+                  "text": {
+                    "type": "object",
+                    "description": "Text output settings, such as a response format."
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "description": "Metadata to attach to the response, in the OpenAI shape."
+                  },
+                  "previous_response_id": {
+                    "type": "string",
+                    "description": "The id of a previous response, for clients that chain responses client-side."
+                  },
+                  "include": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Extra fields to include in the response, such as reasoning encodings."
+                  },
+                  "service_tier": {
+                    "type": "string",
+                    "description": "Accepted for compatibility. The gateway serves one tier."
+                  },
+                  "prompt_cache_key": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "description": "Routing hint that groups requests into one conversation only when no session header or body session id is present. See [Session affinity](https://subconscious.dev/features/session-affinity)."
+                  },
+                  "session_id": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 256,
+                    "description": "Body session id, also spelled sessionId and providerOptions.gateway.sessionId. Between 8 and 256 characters. See [Session affinity](https://subconscious.dev/features/session-affinity)."
+                  },
+                  "providerOptions": {
+                    "type": "object",
+                    "description": "Vercel AI SDK provider options. Only `gateway.sessionId` is read, as a body session id. See [Session affinity](https://subconscious.dev/features/session-affinity)."
+                  },
+                  "return_subconscious_cache_stats": {
+                    "type": "boolean",
+                    "description": "Subconscious extension. Returns the worker's subconscious cache stats on the response."
+                  },
+                  "chat_template_kwargs": {
+                    "type": "object",
+                    "description": "Subconscious extension. Chat-template kwargs, such as the context budget."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful completion",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "A unique identifier for the response.",
+                      "example": "resp_abc123"
+                    },
+                    "object": {
+                      "type": "string",
+                      "enum": [
+                        "response"
+                      ],
+                      "description": "The object type."
+                    },
+                    "created_at": {
+                      "type": "integer",
+                      "description": "Unix timestamp of when the response was created.",
+                      "example": 1716000000
+                    },
+                    "model": {
+                      "type": "string",
+                      "description": "The model used for the response.",
+                      "example": "subconscious/glm-5.3-marathon"
+                    },
+                    "output": {
+                      "type": "array",
+                      "description": "The response output items, such as messages and function calls.",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "prompt_cache_key": {
+                      "type": "string",
+                      "description": "Present only when the request sent one. Echoes the caller's value."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-codeSamples": [
+          {
+            "lang": "python",
+            "label": "Python (OpenAI SDK)",
+            "source": "from openai import OpenAI\n\nclient = OpenAI(\n    api_key=\"your-api-key\",\n    base_url=\"https://api.subconscious.dev/v1\",\n)\n\nresponse = client.responses.create(\n    model=\"subconscious/glm-5.3-marathon\",\n    input=\"What is the capital of France?\",\n)\n\nprint(response.output_text)"
+          },
+          {
+            "lang": "bash",
+            "label": "cURL",
+            "source": "curl https://api.subconscious.dev/v1/responses \\\n  -H \"Authorization: Bearer YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"model\": \"subconscious/glm-5.3-marathon\",\n    \"input\": \"What is the capital of France?\"\n  }'"
+          }
+        ]
       }
     }
   },
