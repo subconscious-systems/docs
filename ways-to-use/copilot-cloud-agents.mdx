@@ -1,0 +1,82 @@
+---
+title: "Copilot cloud agents"
+description: "Run GitHub Copilot agent sessions on Subconscious models"
+icon: "github"
+---
+
+GitHub Copilot supports BYOK (Bring Your Own Key): you supply your own model
+provider instead of, or alongside, GitHub-hosted models. Because the
+Subconscious gateway is OpenAI-compatible, you can point GitHub's Copilot app
+and its cloud agent sessions at Subconscious with a few settings — no custom
+extension or adapter required.
+
+> **Note**
+> GitHub's BYOK support in the Copilot app is in public preview and subject
+> to change. Custom models are available in Copilot agent sessions, Chat,
+> CLI, and IDE surfaces. The GitHub-hosted coding agent that runs on
+> github.com (assigning issues to Copilot) does not use third-party model
+> providers. For the current list of supported surfaces, see GitHub's
+> documentation on BYOK models.
+
+## Before you start
+
+<CardGroup cols={3}>
+  <Card title="A Subconscious API key" icon="key">
+    Create one from your <a href="https://subconscious.dev/platform/api-keys">dashboard</a>
+  </Card>
+  <Card title="The GitHub Copilot app" icon="desktop">
+    Installed and signed in with a GitHub account
+  </Card>
+  <Card title="Gateway credits" icon="coin">
+    Usage is billed per token from your dashboard balance
+  </Card>
+</CardGroup>
+
+You do not need a GitHub Copilot subscription to use your own model provider
+in the Copilot app — a GitHub account is enough. If you do have a Copilot
+plan, you can use Subconscious models and GitHub-hosted models side by side.
+
+## Add Subconscious as a model provider
+
+1. Open the GitHub Copilot app.
+2. Open app settings, then click **Model providers**.
+3. Click **Add provider** and select the **OpenAI-compatible** provider type.
+4. Enter your Subconscious details:
+
+| Setting | Value |
+| --- | --- |
+| Display name | `Subconscious` |
+| Base URL | `https://api.subconscious.dev/v1` |
+| API key | Your Subconscious API key |
+
+5. Click **Add provider** to save.
+
+If you are setting up the app for the first time, you can choose to add your
+own model provider during onboarding instead of following the steps above.
+
+## Start an agent session
+
+After you add the provider, your Subconscious models appear in the model
+picker alongside GitHub-hosted models.
+
+1. Start a new agent session in the Copilot app.
+2. In the model picker, select a Subconscious model, for example
+   `subconscious/glm-5.3-marathon`.
+3. Prompt the session as usual. Model requests are routed to the Subconscious
+   gateway, and usage is deducted from your dashboard balance like any other
+   Subconscious API call.
+
+Agent sessions depend on streaming and tool calling. The Subconscious gateway
+supports both on the chat completions endpoint, so sessions work out of the
+box.
+
+## Manage the key
+
+Per-user Subconscious keys are recommended over shared keys: usage is billed
+per token and each user's consumption is visible in their own dashboard. If a
+team shares one key, that usage lands on a single account balance.
+
+To rotate a key, create a new key in your dashboard, update the provider in
+the Copilot app settings, and revoke the old key. The Copilot app stores
+provider credentials in your system credential store and never displays them
+in the UI.
