@@ -1,95 +1,69 @@
 ---
 title: "Rate limits and Retry-After"
-description: "How throttling and retry hints work on the inference API for partners and integrators"
+description: "How the inference API tells clients when to retry after throttling"
 icon: "clock"
 ---
 
-Partners and other API clients should use **`Retry-After`** (and the matching JSON field) to backoff when Subconscious or upstream capacity rejects a request. This page documents what the gateway sets on `https://api.subconscious.dev`.
+Use **`Retry-After`** (and the matching fields in the error payload, when your protocol exposes them) to backoff when `https://api.subconscious.dev` throttles or asks you to wait. This page describes **what callers see** on the public API.
 
 <Note>
-Advertised per-model limits live on [`GET /v1/models`](/api-reference/models). See [Model discovery](/features/model-discovery) for partner catalog integration.
+Per-model limits are advertised on [`GET /v1/models`](/api-reference/models). See [Model discovery](/features/model-discovery) for partner catalog integration.
 </Note>
 
-## Where it applies
-
-On **JSON error responses** for inference:
+## Endpoints
 
 - `POST /v1/chat/completions`
 - `POST /v1/messages`
 - `POST /v1/responses`
 
-The wait time is duplicated in the body as `error.details.retry_after_seconds` (seconds). Use the header when it is present; use the JSON field when streaming has already started (see below).
+On **JSON error responses** (failures before a stream starts), all three set the **`Retry-After`** header when a wait time is known.
+
+| Route | Header | `retry_after_seconds` on JSON errors |
+|-------|--------|--------------------------------------|
+| Chat Completions | Yes | `error.details.retry_after_seconds` |
+| Responses | Yes | Same OpenAI-style `error` object |
+| Messages | Yes | Not on JSON errors — use the **header** (SSE mid-stream errors can include `error.details`) |
 
 ## Header format
 
 - **Name:** `Retry-After`
-- **Value:** non-negative **integer seconds** until retry
-- Gateway-generated rejections always use delay-seconds, not HTTP-date
+- **Value:** non-negative integer **seconds**
+- Limit rejections use delay-seconds, not HTTP-date
 
-## Subconscious limit rejections
+## How the wait time is computed
 
-If an org-, API-key-, or model-scoped limit blocks the request **before** model execution, the response is **HTTP 429** with `Retry-After`.
+When a **configured limit** blocks the request, the API returns **HTTP 429** and sets `Retry-After` to the **remaining time until that limit’s usage counter resets** (minimum 1 second). The JSON field `error.details.retry_after_seconds` matches the header where that object is returned.
 
-| Limit window | `error.code` | Meaning |
-|--------------|--------------|---------|
-| `minute`, `hour` | `rate_limited` | Short-window throttling |
-| `day`, `month` | `quota_exceeded` | Longer quota window |
+Counters use Redis TTL semantics:
 
-`error.type` is `rate_limit_error` for both. Details often include `scope`, `current_usage`, and `retry_after_seconds`. The header matches `retry_after_seconds` (at least **1** second).
+- **Minute, hour, day:** **Rolling** windows. The window starts when the counter is first touched; it expires after 60s, 3,600s, or 86,400s respectively. `Retry-After` is the **seconds left on that expiry** — typically less than the full window if you were throttled partway through.
+- **Month:** **Calendar** month in UTC (`YYYY-MM`). The counter resets at **00:00:00 UTC** on the first day of the next month.
 
-`retry_after_seconds` is the **remaining time** on the limit counter, not always the full window. Upper bounds when the entire window is still open:
+| Limit window | `error.code` |
+|--------------|--------------|
+| `minute`, `hour` | `rate_limited` |
+| `day`, `month` | `quota_exceeded` |
 
-| Window | Typical max delay (seconds) |
-|--------|----------------------------|
-| minute | 60 |
-| hour | 3,600 |
-| day | 86,400 |
-| month | Until next UTC calendar month (≥ 60) |
+`error.type` is `rate_limit_error` for both on Chat Completions and Responses. Details may include `scope` and `current_usage`.
 
 ### Entitlement suspended
 
-Organizations on an entitlement hold get **HTTP 403** with `error.code` `entitlement_suspended`. **No `Retry-After`** is sent — retries without fixing billing or access will not succeed.
-
-## Upstream rate limits and overload
-
-When the serving layer returns a retryable status (for example **429** or **503**), the gateway:
-
-- Returns that HTTP status when safe (upstream 401/403 are not passed through unchanged)
-- Forwards `Retry-After` from the worker when present (delay seconds or HTTP-date)
-- Sets `error.details.status_code`, `retry_after_seconds`, and `retryable` (`true` for 408, 429, and 5xx)
-
-<CodeGroup>
-
-```json Example error body
-{
-  "error": {
-    "message": "provider rate limited",
-    "type": "rate_limit_error",
-    "code": "rate_limited",
-    "request_id": "req_…",
-    "details": {
-      "retry_after_seconds": 17,
-      "status_code": 429,
-      "retryable": true
-    }
-  }
-}
-```
-
-</CodeGroup>
+**HTTP 403**, code `entitlement_suspended`. **No `Retry-After`** — access must be restored on the account side; backoff alone will not help.
 
 ## Streaming
 
-| When the failure happens | HTTP `Retry-After` | `retry_after_seconds` in body |
-|--------------------------|-------------------|-------------------------------|
-| Before any SSE data | Yes (JSON response) | Yes |
-| After bytes were sent | No (response is already `200` + SSE) | Yes, in the terminal `data:` error event |
+| Failure timing | HTTP `Retry-After` | Where to read seconds |
+|----------------|-------------------|------------------------|
+| Before stream bytes | Yes | Header; plus JSON details on Chat/Responses |
+| After stream started | No (response already `200` + SSE) | Terminal stream error event |
+
+Rejected limit checks are not metered as successful completions.
 
 ## Client recommendations
 
-1. Honor `Retry-After` / `retry_after_seconds` before retrying the same call.
-2. Treat `quota_exceeded` as throttling with typically **longer** waits than `rate_limited`.
-3. Do not auto-retry `entitlement_suspended` — fix account or billing state first.
-4. Limit rejections are **not** billed as successful completions; failed provider calls marked unmetered likewise do not incur completion usage.
+1. Sleep at least `Retry-After` seconds (with jitter) before retrying on **429**.
+2. Expect longer waits for `quota_exceeded` than `rate_limited`.
+3. Do not auto-retry `entitlement_suspended`.
+4. When other retryable API errors include `Retry-After` or `retry_after_seconds`, honor them the same way.
 
-Responses that omit both the header and `retry_after_seconds` (most 400/401/500 without a computed delay) need your own backoff policy.
+Responses with no delay field (typical 400/401/500) need your own backoff policy.
