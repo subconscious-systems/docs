@@ -92,7 +92,8 @@
           {
             "group": "Usage",
             "pages": [
-              "api-reference/usage"
+              "api-reference/usage",
+              "api-reference/throttle-errors"
             ]
           }
         ]
