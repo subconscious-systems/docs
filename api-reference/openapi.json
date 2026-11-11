@@ -302,10 +302,32 @@
             "description": "Unauthorized because of a missing or invalid API key"
           },
           "429": {
-            "description": "Rate limited due to too many requests or tokens per minute"
+            "description": "Configured rate or quota limit exceeded (`rate_limited` or `quota_exceeded`).",
+            "headers": {
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "x-request-id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "request-id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
           },
           "500": {
             "description": "Internal server error"
+          },
+          "403": {
+            "description": "Entitlement suspended (`entitlement_suspended`). No `Retry-After` header.",
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "request-id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
           }
         },
         "parameters": [
@@ -754,10 +776,32 @@
             "description": "Unauthorized because of a missing or invalid API key"
           },
           "429": {
-            "description": "Rate limited due to too many requests or tokens per minute"
+            "description": "Configured rate or quota limit exceeded (`rate_limited` or `quota_exceeded`).",
+            "headers": {
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "x-request-id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "request-id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
           },
           "500": {
             "description": "Internal server error"
+          },
+          "403": {
+            "description": "Entitlement suspended (`entitlement_suspended`). No `Retry-After` header.",
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "request-id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
           }
         },
         "parameters": [
@@ -1286,6 +1330,40 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Configured rate or quota limit exceeded (`rate_limited` or `quota_exceeded`).",
+            "headers": {
+              "Retry-After": {
+                "$ref": "#/components/headers/RetryAfter"
+              },
+              "x-request-id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "request-id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "403": {
+            "description": "Entitlement suspended (`entitlement_suspended`). No `Retry-After` header.",
+            "headers": {
+              "x-request-id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "request-id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request due to invalid parameters or unsupported options"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "401": {
+            "description": "Unauthorized because of a missing or invalid API key"
           }
         },
         "x-codeSamples": [
@@ -1315,6 +1393,33 @@
         "in": "header",
         "name": "x-api-key",
         "description": "API key from your Subconscious dashboard. Accepted by the Anthropic Messages endpoints in place of the Authorization header, for use with the Anthropic SDK."
+      }
+    },
+    "headers": {
+      "RetryAfter": {
+        "description": "Seconds to wait before retrying. Equals `error.details.retry_after_seconds` on Chat Completions and Responses JSON errors when present. Messages JSON errors omit the field \u2014 use this header. Minimum 1. See Rate limits on the docs site.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "examples": [
+            42
+          ]
+        }
+      },
+      "XRequestId": {
+        "description": "Subconscious request id for support correlation.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "req_019c4f2a8b3d4e5f"
+          ]
+        }
+      },
+      "RequestId": {
+        "description": "Same value as x-request-id (OpenAI SDK compatibility).",
+        "schema": {
+          "type": "string"
+        }
       }
     }
   }

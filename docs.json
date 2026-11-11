@@ -47,7 +47,8 @@
               "features/subconscious-cache",
               "features/model-discovery",
               "features/management-api-keys",
-              "features/session-affinity"
+              "features/session-affinity",
+              "features/rate-limits"
             ]
           },
           {
@@ -330,6 +331,10 @@
     {
       "source": "/features/structured-output",
       "destination": "/quickstart"
+    },
+    {
+      "source": "/features/rate-limits-and-retries",
+      "destination": "/features/rate-limits"
     },
     {
       "source": "/engines",
