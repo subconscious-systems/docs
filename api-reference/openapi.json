@@ -776,7 +776,7 @@
             "description": "Unauthorized because of a missing or invalid API key"
           },
           "429": {
-            "description": "Configured rate or quota limit exceeded. Anthropic JSON errors do not include `retry_after_seconds`; read `Retry-After`.",
+            "description": "Configured rate or quota limit exceeded (`rate_limited` or `quota_exceeded`).",
             "headers": {
               "Retry-After": {
                 "$ref": "#/components/headers/RetryAfter"
