@@ -34,7 +34,7 @@ All signals are optional, and all of them work the same on `/v1/chat/completions
 
 For an SDK that already sets a body session id, send nothing else. The SDK's value groups the conversation and binds it to a worker.
 
-For a custom application, send your own `x-<name>-session-id` header. Add `x-subconscious-client` when the label you want in usage views differs from the header name. The naming rules and value rules live in [Request correlation](/features/request-correlation#your-own-session-header).
+For a custom application, send your own `x-<name>-session-id` header. Add `x-subconscious-client` when the label you want in usage views differs from the header name. The naming rules are below, and the client label is in [Name your client](#name-your-client).
 
 ## Your own session header
 
@@ -46,9 +46,7 @@ x-langchain-session-id: 7f2c9e1a-4b8d-4f7a-9c3d-2e5b8a1f6d90
 
 Any header of the form `x-<name>-session-id` is accepted, as long as the name is not reserved. The gateway treats it as your session identity.
 
-The `<name>` part also becomes the agent label shown next to your conversations, so `x-langchain-session-id` shows as `langchain`. Pick the name your users should see. Use lowercase letters, digits, hyphens, and underscores. Values are lowercased before they are stored.
-
-See more about conversations, and about the labels shown next to them, on the [Request correlation](/features/request-correlation) page.
+The `<name>` part also becomes the agent label in usage views, so `x-langchain-session-id` shows as `langchain`. Pick the name your users should see. Use lowercase letters, digits, hyphens, and underscores. Values are lowercased before they are stored.
 
 Follow these rules for the value:
 
@@ -95,7 +93,21 @@ const response = await client.chat.completions.create({
 
 </CodeGroup>
 
-There are two ways to name your client in usage views. The `<name>` of your session header is one. The other is `x-subconscious-client`, described in [Name your client](#name-your-client), which also covers clients that send generic session signals.
+There are two ways to name your client in usage views. The `<name>` of your session header is one. The other is `x-subconscious-client`.
+
+## Name your client
+
+Send `x-subconscious-client` to label your traffic in usage views:
+
+```
+x-subconscious-client: my-agent
+```
+
+Any value works. Labels are lowercased, separators are collapsed to hyphens, and the stored label is at most 64 characters. For example, `My Agent!` shows as `my-agent`.
+
+A present `x-subconscious-client` is the only way a request carrying generic session signals (the body session id, `x-session-id`, or `x-session-affinity`) gets a label.
+
+The client header is terminal: when it is present, its value is the label, regardless of what other signals suggest.
 
 ## Headers to avoid
 
