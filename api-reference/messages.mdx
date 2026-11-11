@@ -3,4 +3,4 @@ title: "Create Message"
 openapi: "/api-reference/openapi.json POST /messages"
 ---
 
-**429**: `Retry-After` on the response; JSON errors omit `retry_after_seconds` ([details](/features/rate-limits-and-retries)). Schemas: [throttle OpenAPI](/api-reference/throttle-errors).
+**429**: read **`Retry-After`** on JSON errors ([guide](/features/rate-limits-and-retries)).
