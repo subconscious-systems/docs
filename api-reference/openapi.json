@@ -302,10 +302,13 @@
             "description": "Unauthorized because of a missing or invalid API key"
           },
           "429": {
-            "description": "Rate limited due to too many requests or tokens per minute"
+            "$ref": "#/components/responses/InferenceThrottledOpenAI"
           },
           "500": {
             "description": "Internal server error"
+          },
+          "403": {
+            "$ref": "#/components/responses/EntitlementSuspendedOpenAI"
           }
         },
         "parameters": [
@@ -754,10 +757,13 @@
             "description": "Unauthorized because of a missing or invalid API key"
           },
           "429": {
-            "description": "Rate limited due to too many requests or tokens per minute"
+            "$ref": "#/components/responses/InferenceThrottledAnthropic"
           },
           "500": {
             "description": "Internal server error"
+          },
+          "403": {
+            "$ref": "#/components/responses/EntitlementSuspendedAnthropic"
           }
         },
         "parameters": [
@@ -1286,6 +1292,21 @@
                 }
               }
             }
+          },
+          "429": {
+            "$ref": "#/components/responses/InferenceThrottledOpenAI"
+          },
+          "403": {
+            "$ref": "#/components/responses/EntitlementSuspendedOpenAI"
+          },
+          "400": {
+            "description": "Bad request due to invalid parameters or unsupported options"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "401": {
+            "description": "Unauthorized because of a missing or invalid API key"
           }
         },
         "x-codeSamples": [
@@ -1315,6 +1336,299 @@
         "in": "header",
         "name": "x-api-key",
         "description": "API key from your Subconscious dashboard. Accepted by the Anthropic Messages endpoints in place of the Authorization header, for use with the Anthropic SDK."
+      }
+    },
+    "headers": {
+      "RetryAfter": {
+        "description": "Seconds to wait before retrying this endpoint. Matches `error.details.retry_after_seconds` on OpenAI-shaped JSON errors when that field is present.",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "examples": [
+            42
+          ]
+        }
+      },
+      "XRequestId": {
+        "description": "Subconscious request id for support correlation.",
+        "schema": {
+          "type": "string",
+          "examples": [
+            "req_019c4f2a8b3d4e5f"
+          ]
+        }
+      },
+      "RequestId": {
+        "description": "Duplicate of x-request-id for OpenAI SDK compatibility.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "InferenceErrorDetails": {
+        "type": "object",
+        "description": "Extra fields on OpenAI-shaped inference errors. Omitted on Anthropic JSON error bodies (use the Retry-After header).",
+        "properties": {
+          "retry_after_seconds": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Seconds until the limit counter resets. Equals the Retry-After response header when both are present."
+          },
+          "scope": {
+            "type": "string",
+            "description": "Limit scope that fired, for example org, API key, and model.",
+            "examples": [
+              "org:org_abc:subconscious/glm-5.3-marathon"
+            ]
+          },
+          "current_usage": {
+            "type": "integer",
+            "description": "Counter value at rejection time."
+          },
+          "reset_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When present, when the limit counter is expected to reset."
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether the client should retry after waiting."
+          }
+        },
+        "additionalProperties": true
+      },
+      "SubconsciousOpenAIError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "message",
+              "type",
+              "code",
+              "request_id"
+            ],
+            "properties": {
+              "message": {
+                "type": "string",
+                "examples": [
+                  "request minute limit exceeded"
+                ]
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "rate_limit_error",
+                  "invalid_request_error",
+                  "api_error"
+                ],
+                "description": "OpenAI-compatible error type."
+              },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "rate_limited",
+                  "quota_exceeded",
+                  "entitlement_suspended",
+                  "invalid_api_key",
+                  "invalid_request"
+                ],
+                "description": "Subconscious error code."
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "param": {
+                "type": "string"
+              },
+              "details": {
+                "$ref": "#/components/schemas/InferenceErrorDetails"
+              }
+            }
+          }
+        }
+      },
+      "AnthropicErrorBody": {
+        "type": "object",
+        "required": [
+          "type",
+          "error"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "error"
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "type",
+              "message"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "rate_limit_error",
+                  "authentication_error",
+                  "permission_error",
+                  "invalid_request_error",
+                  "api_error",
+                  "overloaded_error"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "examples": [
+                  "request minute limit exceeded"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "InferenceThrottledOpenAI": {
+        "description": "Configured minute/hour limit (`error.code` `rate_limited`) or day/month quota (`quota_exceeded`). HTTP 429. Rolling counters for minute, hour, and day; calendar month in UTC for month.",
+        "headers": {
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          },
+          "x-request-id": {
+            "$ref": "#/components/headers/XRequestId"
+          },
+          "request-id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SubconsciousOpenAIError"
+            },
+            "examples": {
+              "rate_limited": {
+                "summary": "Short-window limit",
+                "value": {
+                  "error": {
+                    "message": "request minute limit exceeded",
+                    "type": "rate_limit_error",
+                    "code": "rate_limited",
+                    "request_id": "req_019c4f2a8b3d4e5f",
+                    "details": {
+                      "retry_after_seconds": 42,
+                      "scope": "org:org_abc:subconscious/glm-5.3-marathon",
+                      "current_usage": 600
+                    }
+                  }
+                }
+              },
+              "quota_exceeded": {
+                "summary": "Day or month quota",
+                "value": {
+                  "error": {
+                    "message": "token day limit exceeded",
+                    "type": "rate_limit_error",
+                    "code": "quota_exceeded",
+                    "request_id": "req_019c4f2a8b3d4e5f",
+                    "details": {
+                      "retry_after_seconds": 86400,
+                      "scope": "org:org_abc:subconscious/glm-5.3-marathon",
+                      "current_usage": 1000000
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "EntitlementSuspendedOpenAI": {
+        "description": "Organization access is suspended. HTTP 403. No Retry-After header.",
+        "headers": {
+          "x-request-id": {
+            "$ref": "#/components/headers/XRequestId"
+          },
+          "request-id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/SubconsciousOpenAIError"
+            },
+            "example": {
+              "error": {
+                "message": "organization access is suspended; the entitlement must be restored before requests are served; check billing and limits.",
+                "type": "invalid_request_error",
+                "code": "entitlement_suspended",
+                "request_id": "req_019c4f2a8b3d4e5f",
+                "details": {
+                  "scope": "org:org_abc:subconscious/glm-5.3-marathon"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InferenceThrottledAnthropic": {
+        "description": "Same limits as the OpenAI wire, Anthropic JSON shape. `Retry-After` is set; the JSON body does not include `retry_after_seconds`.",
+        "headers": {
+          "Retry-After": {
+            "$ref": "#/components/headers/RetryAfter"
+          },
+          "x-request-id": {
+            "$ref": "#/components/headers/XRequestId"
+          },
+          "request-id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AnthropicErrorBody"
+            },
+            "example": {
+              "type": "error",
+              "error": {
+                "type": "rate_limit_error",
+                "message": "request minute limit exceeded"
+              }
+            }
+          }
+        }
+      },
+      "EntitlementSuspendedAnthropic": {
+        "description": "Organization access is suspended. HTTP 403. No Retry-After header.",
+        "headers": {
+          "x-request-id": {
+            "$ref": "#/components/headers/XRequestId"
+          },
+          "request-id": {
+            "$ref": "#/components/headers/RequestId"
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/AnthropicErrorBody"
+            },
+            "example": {
+              "type": "error",
+              "error": {
+                "type": "permission_error",
+                "message": "organization access is suspended; the entitlement must be restored before requests are served; check billing and limits."
+              }
+            }
+          }
+        }
       }
     }
   }

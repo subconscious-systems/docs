@@ -10,6 +10,8 @@ Use **`Retry-After`** (and the matching fields in the error payload, when your p
 Per-model limits are advertised on [`GET /v1/models`](/api-reference/models). See [Model discovery](/features/model-discovery) for partner catalog integration.
 </Note>
 
+OpenAPI for **429** / **403** response bodies and headers: [inference throttle spec](/schemas/inference-throttle.openapi.json) (`InferenceThrottledOpenAI`, `InferenceThrottledAnthropic`, entitlement responses). The main [API reference](/api-reference/chat-completions) operations reference these components.
+
 ## Endpoints
 
 - `POST /v1/chat/completions`
