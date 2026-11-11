@@ -1397,7 +1397,7 @@
     },
     "headers": {
       "RetryAfter": {
-        "description": "Seconds to wait before retrying. Equals `error.details.retry_after_seconds` on Chat Completions and Responses JSON errors when present. Messages JSON errors omit the field \u2014 use this header. Minimum 1. See Rate limits and Retry-After on the docs site.",
+        "description": "Seconds to wait before retrying. Equals `error.details.retry_after_seconds` on Chat Completions and Responses JSON errors when present. Messages JSON errors omit the field \u2014 use this header. Minimum 1. See Rate limits on the docs site.",
         "schema": {
           "type": "integer",
           "minimum": 1,

@@ -1,0 +1,104 @@
+---
+title: "Rate limits"
+description: "Throttling, Retry-After, and example responses"
+icon: "clock"
+---
+
+<Note>
+Limits per model: [`GET /v1/models`](/api-reference/models). **429** response headers are on each inference endpoint in the API reference.
+</Note>
+
+## Routes
+
+`POST /v1/chat/completions`, `/v1/messages`, `/v1/responses`.
+
+| Route | `retry_after_seconds` in JSON |
+|-------|-------------------------------|
+| Chat Completions, Responses | `error.details.retry_after_seconds` |
+| Messages | Use **`Retry-After`** on JSON errors (body omits the field) |
+
+`Retry-After` is seconds until the limit counter resets (minimum 1). Rolling windows for minute/hour/day; calendar UTC month for month.
+
+| Window | `error.code` |
+|--------|----------------|
+| minute, hour | `rate_limited` |
+| day, month | `quota_exceeded` |
+
+**403** `entitlement_suspended` — no `Retry-After`.
+
+## Example: Chat Completions / Responses (429)
+
+**Response headers**
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 42
+x-request-id: req_019c4f2a8b3d4e5f
+request-id: req_019c4f2a8b3d4e5f
+Content-Type: application/json
+```
+
+**Response body**
+
+```json
+{
+  "error": {
+    "message": "request minute limit exceeded",
+    "type": "rate_limit_error",
+    "code": "rate_limited",
+    "request_id": "req_019c4f2a8b3d4e5f",
+    "details": {
+      "retry_after_seconds": 42,
+      "scope": "org:org_abc:subconscious/glm-5.3-marathon",
+      "current_usage": 600
+    }
+  }
+}
+```
+
+**Request** (normal inference auth — no extra rate-limit headers)
+
+```http
+POST /v1/chat/completions HTTP/1.1
+Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json
+```
+
+## Example: Messages (429)
+
+**Response headers**
+
+```http
+HTTP/1.1 429 Too Many Requests
+Retry-After: 42
+x-request-id: req_019c4f2a8b3d4e5f
+request-id: req_019c4f2a8b3d4e5f
+Content-Type: application/json
+```
+
+**Response body**
+
+```json
+{
+  "type": "error",
+  "error": {
+    "type": "rate_limit_error",
+    "message": "request minute limit exceeded"
+  }
+}
+```
+
+**Request**
+
+```http
+POST /v1/messages HTTP/1.1
+x-api-key: YOUR_API_KEY
+anthropic-version: 2023-06-01
+Content-Type: application/json
+```
+
+## Streaming
+
+Before any stream bytes: JSON error + headers as above. After bytes start: HTTP 200 and the wait hint only in the stream error event (no `Retry-After` on the HTTP response).
+
+Limit rejections are not metered as completions.
