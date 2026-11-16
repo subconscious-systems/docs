@@ -10,7 +10,9 @@ A management key cannot run inference. It only authorizes the management endpoin
 
 ## Create a management key
 
-Organization admins can create management keys on the [API keys](https://platform.subconscious.dev/api-keys) page. Management keys are visible to organization admins only and are excluded from your inference-key limit.
+Organization admins can create management keys on the [API keys](https://platform.subconscious.dev/api-keys) page. Management keys are visible to organization admins only and are excluded from your inference-key limit. A management key belongs to the organization, so it keeps working when the admin who created it leaves.
+
+A management key can expire after 30 days, 90 days, 1 year, or on a date you pick. From its expiry time on, management calls with it fail with `401`.
 
 The full secret is shown once at creation time. Store it in your secret manager; we cannot recover it. A management secret has the form `sk-mgmt-{prefix}.{token}`. `{prefix}` is 8 hex characters, and delete calls use that prefix.
 
@@ -33,8 +35,13 @@ All endpoints are scoped to the organization the management key belongs to.
 curl https://platform.subconscious.dev/api/v1/management/api-keys \
   -H "Authorization: Bearer sk-mgmt-..." \
   -H "Content-Type: application/json" \
-  -d '{"name": "tenant-42"}'
+  -d '{"name": "tenant-42", "expires_at": "90d"}'
 ```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Display name, 1 to 255 characters. |
+| `expires_at` | No | `never` (default), `30d`, `90d`, `1y`, or an ISO 8601 date in the future. |
 
 Response:
 
@@ -45,18 +52,21 @@ Response:
     "name": "tenant-42",
     "key": "sk-gw-...",
     "keyPrefix": "a1b2c3d4",
-    "createdAt": "2026-09-30T21:40:00.000Z"
+    "createdAt": "2026-09-30T21:40:00.000Z",
+    "expiresAt": "2026-12-29T21:40:00.000Z"
   }
 }
 ```
 
 `key` is the inference secret. Return it to your tenant or feed it straight into your runtime. It is shown once; the delete endpoint uses `keyPrefix` so you never need the full secret again.
 
+Keys minted here belong to the organization, not to a person. The [audit log](/features/api-keys#audit-log) names the management key that created them.
+
 ## List inference keys
 
 `GET /api/v1/management/api-keys`
 
-Returns the organization's inference keys, newest first: id, name, prefix, whether the key is active, created time, and last-used time. Inactive keys are included. Hidden keys and management keys are omitted. Secrets are not included.
+Returns the organization's inference keys, newest first: id, name, prefix, whether the key is active, created time, expiry time, and last-used time. Inactive keys are included. Hidden keys and management keys are omitted. Secrets are not included.
 
 ## Delete an inference key
 
@@ -67,4 +77,4 @@ curl -X DELETE https://platform.subconscious.dev/api/v1/management/api-keys/a1b2
   -H "Authorization: Bearer sk-mgmt-..."
 ```
 
-Revokes the key at the gateway and deactivates it. Requests presented with a deleted key fail immediately. Returns 404 when no active key matches the prefix.
+Revokes the key at the gateway and deactivates it. Requests presented with a deleted key fail immediately. The audit log records the management key that deleted it. Returns 404 when no active key matches the prefix.

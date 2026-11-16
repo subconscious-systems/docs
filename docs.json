@@ -46,6 +46,7 @@
               "features/thinking",
               "features/subconscious-cache",
               "features/model-discovery",
+              "features/api-keys",
               "features/management-api-keys",
               "features/session-affinity",
               "features/rate-limits"
