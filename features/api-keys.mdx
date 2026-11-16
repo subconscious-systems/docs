@@ -1,0 +1,68 @@
+---
+title: "API keys"
+description: "How keys are shown, owned, expired, revoked and audited"
+icon: "lock"
+---
+
+Create and manage keys on the [API keys](https://platform.subconscious.dev/api-keys) page. To create keys from your own code, use [management API keys](/features/management-api-keys).
+
+## A key is shown once
+
+When you create a key, the full secret is shown once, in the dialog that opens. Copy it then. After the dialog closes, nobody can read it again, including organization admins and Subconscious. We store only a SHA-256 hash of the key, and the page shows only its prefix.
+
+If you lose a key, create a new one and delete the old one.
+
+## Owners
+
+Every key belongs to a person or to the organization.
+
+| Owner | Use it for | When the owner leaves the organization |
+|-------|------------|----------------------------------------|
+| Person | Your own scripts, notebooks and machines | The key is revoked |
+| Organization | Production services, CI and shared automation | The key keeps working |
+
+Admins choose the owner when they create a key. Members always create personal keys. To keep a personal key working after its creator leaves, an admin can select **Move to organization** on that key. Its secret does not change.
+
+## Expiry
+
+A key can expire after 30 days, 90 days, 1 year, or on a date you pick. The default is never. From its expiry time on, the key is rejected with `401` and the page shows an **Expired** badge.
+
+## Who sees what
+
+| | Members | Admins |
+|---|---|---|
+| Their own keys | See, rename, delete | See, rename, delete |
+| Other people's keys and organization keys | Hidden | See, rename, delete, move |
+| Management keys | Hidden | See, create, delete |
+| Audit log | Hidden | See |
+| Usage by person | Hidden | See |
+
+## Audit log
+
+Admins see an audit log under the key list. It records every create, revoke, rename and move with:
+
+- the time
+- the key name and its type: personal, organization or management
+- who did it: a person, a management key, or **System** for automatic revokes
+
+## Limits
+
+By default, an organization can have 50 active inference keys. Revoked and expired keys do not count, so deleting a key frees its slot. Management keys have their own limit of 5. To raise a limit, contact [support@subconscious.dev](mailto:support@subconscious.dev).
+
+## Keys from `subc login`
+
+`subc login` creates a new personal key for the machine you run it on:
+
+1. The CLI shows a code and opens your browser.
+2. The browser shows the machine name and the same code. Select **Approve** only if both match what you just ran.
+3. The CLI saves the key: in the Keychain on macOS, and in a file only you can read on other systems. On the API keys page the key is named after the machine, for example `subc on my-laptop`.
+
+Each machine gets its own key, so logging in on a new machine never breaks another one. `subc logout` revokes that machine's key before it removes the local copy. A login key with no requests for 30 days is revoked automatically. Run `subc login` again to get a new one.
+
+## Playground
+
+The [Playground](https://platform.subconscious.dev/playground) uses a hidden key for each person, encrypted at rest. It never appears in the key list or the page, and it does not count toward your limit.
+
+## Usage by person
+
+On the [Usage](https://platform.subconscious.dev/usage) page, admins can group the leaderboard by key or by person. Usage from organization-owned keys appears under **Organization**.

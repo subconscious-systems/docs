@@ -41,6 +41,11 @@
                     "maxLength": 255,
                     "description": "Display name for the inference key. Must be non-empty after trimming and at most 255 characters.",
                     "example": "tenant-42"
+                  },
+                  "expires_at": {
+                    "type": "string",
+                    "description": "When the key stops working: `never` (default), `30d`, `90d`, `1y`, or an ISO 8601 date in the future. An expired key is rejected with 401.",
+                    "example": "90d"
                   }
                 }
               }
@@ -58,7 +63,7 @@
                   "properties": {
                     "apiKey": {
                       "type": "object",
-                      "required": ["id", "name", "key", "keyPrefix", "createdAt"],
+                      "required": ["id", "name", "key", "keyPrefix", "createdAt", "expiresAt"],
                       "properties": {
                         "id": { "type": "string", "description": "Platform id of the key." },
                         "name": { "type": "string" },
@@ -70,7 +75,12 @@
                           "type": "string",
                           "description": "Prefix used by the delete endpoint."
                         },
-                        "createdAt": { "type": "string", "format": "date-time" }
+                        "createdAt": { "type": "string", "format": "date-time" },
+                        "expiresAt": {
+                          "type": ["string", "null"],
+                          "format": "date-time",
+                          "description": "When the key stops working, or null if it never expires."
+                        }
                       }
                     }
                   }
@@ -81,14 +91,15 @@
                     "name": "tenant-42",
                     "key": "sk-gw-...",
                     "keyPrefix": "a1b2c3d4",
-                    "createdAt": "2026-09-30T21:40:00.000Z"
+                    "createdAt": "2026-09-30T21:40:00.000Z",
+                    "expiresAt": "2026-12-29T21:40:00.000Z"
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "The body is not JSON, `name` is missing or longer than 255 characters, or the organization is at its inference-key limit.",
+            "description": "The body is not JSON, `name` is missing or longer than 255 characters, `expires_at` is not a valid expiry, or the organization is at its inference-key limit.",
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Error" },
@@ -96,15 +107,20 @@
                   "name": {
                     "value": { "error": "Body must include a non-empty \"name\" (max 255 chars)" }
                   },
+                  "expiry": {
+                    "value": { "error": "\"expires_at\": Expiry must be never, 30d, 90d, 1y or an ISO 8601 date" }
+                  },
                   "limit": {
-                    "value": { "error": "Maximum number of keys is 10" }
+                    "value": {
+                      "error": "Your organization has reached its limit of 50 active API keys. Revoke a key or contact support to raise the limit."
+                    }
                   }
                 }
               }
             }
           },
           "401": {
-            "description": "Missing or inactive management key.",
+            "description": "Missing, inactive or expired management key.",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
             }
@@ -161,7 +177,7 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": ["id", "name", "keyPrefix", "isActive", "createdAt", "lastUsedAt"],
+                        "required": ["id", "name", "keyPrefix", "isActive", "createdAt", "expiresAt", "lastUsedAt"],
                         "properties": {
                           "id": { "type": "string" },
                           "name": { "type": "string" },
@@ -171,6 +187,11 @@
                             "description": "False after the key has been deleted."
                           },
                           "createdAt": { "type": "string", "format": "date-time" },
+                          "expiresAt": {
+                            "type": ["string", "null"],
+                            "format": "date-time",
+                            "description": "When the key stops working, or null if it never expires."
+                          },
                           "lastUsedAt": {
                             "type": ["string", "null"],
                             "format": "date-time"
@@ -188,6 +209,7 @@
                       "keyPrefix": "a1b2c3d4",
                       "isActive": true,
                       "createdAt": "2026-09-30T21:40:00.000Z",
+                      "expiresAt": null,
                       "lastUsedAt": "2026-09-30T22:05:00.000Z"
                     }
                   ]
@@ -196,7 +218,7 @@
             }
           },
           "401": {
-            "description": "Missing or inactive management key.",
+            "description": "Missing, inactive or expired management key.",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
             }
@@ -252,7 +274,7 @@
             }
           },
           "401": {
-            "description": "Missing or inactive management key.",
+            "description": "Missing, inactive or expired management key.",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/Error" } }
             }
