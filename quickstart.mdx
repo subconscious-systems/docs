@@ -41,6 +41,10 @@ npm install @anthropic-ai/sdk
 
 Set your API key and base URL, then create a chat completion:
 
+<Tip>
+The examples use `subconscious/glm-5.3-marathon`, which has unlimited context. For a 1M-token context window at a lower price, set `model` to `subconscious/glm-5.3`. See [Choose a model](/models/overview).
+</Tip>
+
 <CodeGroup>
 
 ```python Python (OpenAI)
@@ -352,6 +356,9 @@ See [Streaming](/features/streaming) for more details.
 ## Next Steps
 
 <CardGroup cols={2}>
+  <Card title="Choose a model" icon="scale-balanced" href="/models/overview">
+    Compare GLM 5.3 and GLM 5.3 Marathon
+  </Card>
   <Card title="Streaming" icon="wave-pulse" href="/features/streaming">
     Real-time token-by-token output
   </Card>

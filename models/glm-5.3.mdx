@@ -1,0 +1,104 @@
+---
+title: "GLM 5.3"
+description: "Our default GLM model: a 1M-token context window at our lowest per-token price"
+icon: "bolt"
+---
+
+GLM 5.3 is the default Subconscious model. It has a 1M-token context window and our lowest per-token price. It is fast and accurate on long-running coding and agent work within that window.
+
+| | |
+|---|---|
+| Model ID | `subconscious/glm-5.3` |
+| Input price | TBD per 1M tokens |
+| Cached input price | TBD per 1M tokens |
+| Output price | TBD per 1M tokens |
+| Context window | 1M tokens |
+| Billing | [Greenline](/models/overview#greenline-billing) |
+| APIs | [Chat Completions](/api-reference/chat-completions), [Messages](/api-reference/messages), [Responses](/api-reference/responses) |
+
+Your organization's rates are on the [pricing page](https://www.subconscious.dev/pricing) and in [List models with pricing](/api-reference/platform-models).
+
+## When to use GLM 5.3
+
+- You route traffic through a gateway or router and want a low price per token.
+- Your agent sessions stay under 1M tokens, or your client compacts context before that.
+- You want billing that counts the prompt exactly as you sent it.
+
+If your sessions run past 1M tokens and you do not want to compact, use [GLM 5.3 Marathon](/models/glm-5.3-marathon).
+
+## Context window
+
+The context window is 1M tokens. Compact or trim your message list before a session reaches that size. Most coding agents compact automatically.
+
+## Billing
+
+GLM 5.3 uses greenline billing. Every token in the prompt that you send is billed:
+
+- **Cached input:** The part of your prompt that repeats context from earlier requests in the session. It bills at the cached input rate.
+- **Input:** The rest of your prompt. It bills at the input rate.
+- **Output:** The tokens the model generates, including reasoning tokens. They bill at the output rate.
+
+See [Choose a model](/models/overview#billing) for a comparison with orangeline billing.
+
+## Usage fields
+
+The `usage` object reports the full prompt that you sent, split into cached and uncached input.
+
+| Format | Input | Cached input | Output |
+|---|---|---|---|
+| Chat Completions | `prompt_tokens` (includes cached) | `prompt_tokens_details.cached_tokens` | `completion_tokens` |
+| Messages | `input_tokens` (excludes cached) | `cache_read_input_tokens` | `output_tokens` |
+| Responses | `input_tokens` (includes cached) | `input_tokens_details.cached_tokens` | `output_tokens` |
+
+See [Usage fields](/models/overview#usage-fields) for reasoning and total token fields.
+
+## Example
+
+<CodeGroup>
+
+```python Python (OpenAI)
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-api-key",
+    base_url="https://api.subconscious.dev/v1",
+)
+
+response = client.chat.completions.create(
+    model="subconscious/glm-5.3",
+    messages=[{"role": "user", "content": "What is the capital of France?"}],
+)
+
+print(response.choices[0].message.content)
+print(response.usage)
+```
+
+```python Python (Anthropic)
+from anthropic import Anthropic
+
+client = Anthropic(
+    auth_token="your-api-key",
+    base_url="https://api.subconscious.dev",
+)
+
+message = client.messages.create(
+    model="subconscious/glm-5.3",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "What is the capital of France?"}],
+)
+
+print(message.content[0].text)
+print(message.usage)
+```
+
+```bash cURL (Chat Completions)
+curl https://api.subconscious.dev/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "subconscious/glm-5.3",
+    "messages": [{"role": "user", "content": "What is the capital of France?"}]
+  }'
+```
+
+</CodeGroup>
