@@ -1,0 +1,80 @@
+---
+title: "Choose a model"
+description: "Compare GLM 5.3 and GLM 5.3 Marathon: context, billing, price, and usage fields"
+icon: "scale-balanced"
+---
+
+Subconscious offers two GLM 5.3 models. Both are fast and accurate on long-running agent work. They differ in context window, in how input is billed, and in list price.
+
+- **[GLM 5.3](/models/glm-5.3)** (`subconscious/glm-5.3`) has a 1M-token context window and our lowest per-token price. Use it by default.
+- **[GLM 5.3 Marathon](/models/glm-5.3-marathon)** (`subconscious/glm-5.3-marathon`) has unlimited context. You pay for the tokens the model processes after context compression. Use it for runs that should never stop to compact.
+
+## Comparison
+
+| | GLM 5.3 | GLM 5.3 Marathon |
+|---|---|---|
+| Model ID | `subconscious/glm-5.3` | `subconscious/glm-5.3-marathon` |
+| Context window | 1M tokens | Unlimited |
+| Long sessions | Compact your context before it reaches 1M tokens | No compaction needed |
+| Billing | Greenline: you pay for the full prompt you send | Orangeline: you pay for the tokens processed after compression |
+| Input price (per 1M tokens) | TBD | TBD |
+| Cached input price (per 1M tokens) | TBD | TBD |
+| Output price (per 1M tokens) | TBD | TBD |
+| Usage fields | Same fields on both models. See [Usage fields](#usage-fields). | Same fields on both models. See [Usage fields](#usage-fields). |
+
+GLM 5.3 always has a lower list price than GLM 5.3 Marathon. Your organization's rates are on the [pricing page](https://www.subconscious.dev/pricing) and in [List models with pricing](/api-reference/platform-models).
+
+## Billing
+
+Each request is billed in three parts: input tokens, cached input tokens, and output tokens. Cached input tokens bill at a lower rate than input tokens. The two models count input in different ways.
+
+### Greenline billing
+
+GLM 5.3 uses greenline billing. Greenline billing counts the full prompt that you send.
+
+- **Cached input:** The part of your prompt that repeats context from earlier requests in the session. It bills at the cached input rate.
+- **Input:** The rest of your prompt, which is new to the session. It bills at the input rate.
+- **Output:** The tokens the model generates, including reasoning tokens. They bill at the output rate.
+
+Cached input plus input always equals the length of the prompt that you sent.
+
+### Orangeline billing
+
+GLM 5.3 Marathon uses orangeline billing. Orangeline billing counts the tokens the model actually processes. On long sessions, the serving runtime compresses your context before the model reads it. Tokens that compression removes are not billed.
+
+- **Cached input:** The processed tokens that the model reads from cache. They bill at the cached input rate.
+- **Input:** The processed tokens that are not in cache. They bill at the input rate.
+- **Output:** The tokens the model generates, including reasoning tokens. They bill at the output rate.
+
+On a long session, cached input plus input can be much smaller than the prompt that you sent. That difference is why Marathon suits runs that grow for hours or days.
+
+## Usage fields
+
+Both models return the same `usage` fields in every API format. The values follow the billing rules above. On GLM 5.3, input counts reflect the full prompt that you sent. On GLM 5.3 Marathon, input counts reflect the tokens processed after compression.
+
+| What it counts | Chat Completions | Messages | Responses |
+|---|---|---|---|
+| Input tokens, including cached input | `prompt_tokens` | `input_tokens` + `cache_read_input_tokens` | `input_tokens` |
+| Cached input tokens | `prompt_tokens_details.cached_tokens` | `cache_read_input_tokens` | `input_tokens_details.cached_tokens` |
+| Output tokens | `completion_tokens` | `output_tokens` | `output_tokens` |
+| Reasoning tokens, included in output | `completion_tokens_details.reasoning_tokens` | Not reported | `output_tokens_details.reasoning_tokens` |
+| Total tokens | `total_tokens` | Not reported | `total_tokens` |
+
+In the Messages format, `input_tokens` excludes cached input, and `cache_read_input_tokens` is omitted when it is zero. In Chat Completions, `completion_tokens_details` is omitted when the request has no reasoning tokens. For streaming, see [Usage statistics](/features/streaming#usage-statistics).
+
+### Example
+
+A session sends a 120,000-token prompt. Earlier requests in the session already covered 100,000 of those tokens. The model generates 2,000 tokens.
+
+- **GLM 5.3** reports `prompt_tokens: 120000` and `cached_tokens: 100000`. You pay for 20,000 input tokens, 100,000 cached input tokens, and 2,000 output tokens.
+- **GLM 5.3 Marathon** reports the tokens left after compression. For example, if compression removes 40,000 tokens, it can report `prompt_tokens: 80000`. You pay only for those 80,000 tokens, split into input and cached input, plus 2,000 output tokens.
+
+The Marathon numbers in this example are for illustration. The amount of compression depends on your session.
+
+## Switch between models
+
+Change the `model` value in your request to switch. You can start a session on GLM 5.3 and move it to GLM 5.3 Marathon when it nears 1M tokens. Each model has its own [rate limits](/features/rate-limits).
+
+<Note>
+Both models run on the same hosted Subconscious inference stack and share one cache. They are two offerings with different context rules and billing, not two different model weights.
+</Note>

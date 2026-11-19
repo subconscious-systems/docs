@@ -40,6 +40,14 @@
             ]
           },
           {
+            "group": "Models",
+            "pages": [
+              "models/overview",
+              "models/glm-5.3",
+              "models/glm-5.3-marathon"
+            ]
+          },
+          {
             "group": "Features",
             "pages": [
               "features/streaming",

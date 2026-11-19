@@ -53,6 +53,7 @@
                     "type": "string",
                     "description": "The model to use for completion.",
                     "enum": [
+                      "subconscious/glm-5.3",
                       "subconscious/glm-5.3-marathon"
                     ],
                     "example": "subconscious/glm-5.3-marathon"
@@ -278,15 +279,35 @@
                       "properties": {
                         "prompt_tokens": {
                           "type": "integer",
-                          "description": "Number of tokens in the prompt."
+                          "description": "Input tokens, including cached input. On subconscious/glm-5.3 this is the full prompt that you sent. On subconscious/glm-5.3-marathon it is the tokens processed after context compression. See https://docs.subconscious.dev/models/overview#usage-fields."
+                        },
+                        "prompt_tokens_details": {
+                          "type": "object",
+                          "description": "Breakdown of the input tokens.",
+                          "properties": {
+                            "cached_tokens": {
+                              "type": "integer",
+                              "description": "Input tokens billed at the cached input rate."
+                            }
+                          }
                         },
                         "completion_tokens": {
                           "type": "integer",
-                          "description": "Number of tokens in the generated completion."
+                          "description": "Number of tokens in the generated completion, including reasoning tokens."
+                        },
+                        "completion_tokens_details": {
+                          "type": "object",
+                          "description": "Breakdown of the output tokens. Omitted when the request has no reasoning tokens.",
+                          "properties": {
+                            "reasoning_tokens": {
+                              "type": "integer",
+                              "description": "Reasoning tokens, included in completion_tokens."
+                            }
+                          }
                         },
                         "total_tokens": {
                           "type": "integer",
-                          "description": "Total number of tokens used."
+                          "description": "prompt_tokens plus completion_tokens."
                         }
                       }
                     }
@@ -407,6 +428,7 @@
                     "type": "string",
                     "description": "The model to use for completion.",
                     "enum": [
+                      "subconscious/glm-5.3",
                       "subconscious/glm-5.3-marathon"
                     ],
                     "example": "subconscious/glm-5.3-marathon"
@@ -752,7 +774,7 @@
                       "properties": {
                         "input_tokens": {
                           "type": "integer",
-                          "description": "Number of input tokens used."
+                          "description": "Input tokens billed at the input rate. Excludes cached input. On subconscious/glm-5.3 the input counts cover the full prompt that you sent. On subconscious/glm-5.3-marathon they cover the tokens processed after context compression. See https://docs.subconscious.dev/models/overview#usage-fields."
                         },
                         "output_tokens": {
                           "type": "integer",
@@ -760,7 +782,7 @@
                         },
                         "cache_read_input_tokens": {
                           "type": "integer",
-                          "description": "Number of input tokens read from cache."
+                          "description": "Input tokens billed at the cached input rate. Omitted when zero."
                         }
                       }
                     }
@@ -1186,6 +1208,7 @@
                     "type": "string",
                     "description": "The model to use.",
                     "enum": [
+                      "subconscious/glm-5.3",
                       "subconscious/glm-5.3-marathon"
                     ],
                     "example": "subconscious/glm-5.3-marathon"

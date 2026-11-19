@@ -1,0 +1,104 @@
+---
+title: "GLM 5.3 Marathon"
+description: "GLM with unlimited context, billed on the tokens processed after context compression"
+icon: "infinity"
+---
+
+GLM 5.3 Marathon is GLM 5.3 with unlimited context. Your agent can run for as long as it needs without compacting. You pay for the tokens the model processes after context compression, not for every token of history that you send.
+
+| | |
+|---|---|
+| Model ID | `subconscious/glm-5.3-marathon` |
+| Input price | TBD per 1M tokens |
+| Cached input price | TBD per 1M tokens |
+| Output price | TBD per 1M tokens |
+| Context window | Unlimited |
+| Billing | [Orangeline](/models/overview#orangeline-billing) |
+| APIs | [Chat Completions](/api-reference/chat-completions), [Messages](/api-reference/messages), [Responses](/api-reference/responses) |
+
+Your organization's rates are on the [pricing page](https://www.subconscious.dev/pricing) and in [List models with pricing](/api-reference/platform-models).
+
+## When to use GLM 5.3 Marathon
+
+- Your agent sessions grow past 1M tokens.
+- You do not want your client to compact or trim context.
+- You run long sessions and want to pay for what the model processes, not for the full history on every request.
+
+For shorter sessions at a lower list price, use [GLM 5.3](/models/glm-5.3).
+
+## Context
+
+There is no context limit to manage. Send the full message list on every request. The serving runtime compresses context that the model no longer needs, so the model stays fast and accurate as the session grows. To control compression yourself, see [Subconscious Cache](/features/subconscious-cache).
+
+## Billing
+
+GLM 5.3 Marathon uses orangeline billing. Only the tokens the model processes after compression are billed:
+
+- **Cached input:** The processed tokens that the model reads from cache. They bill at the cached input rate.
+- **Input:** The processed tokens that are not in cache. They bill at the input rate.
+- **Output:** The tokens the model generates, including reasoning tokens. They bill at the output rate.
+
+Tokens that compression removes are not billed. See [Choose a model](/models/overview#billing) for a comparison with greenline billing.
+
+## Usage fields
+
+The `usage` object reports the tokens processed after compression. On a long session, the input counts can be much smaller than the prompt that you sent.
+
+| Format | Input | Cached input | Output |
+|---|---|---|---|
+| Chat Completions | `prompt_tokens` (includes cached) | `prompt_tokens_details.cached_tokens` | `completion_tokens` |
+| Messages | `input_tokens` (excludes cached) | `cache_read_input_tokens` | `output_tokens` |
+| Responses | `input_tokens` (includes cached) | `input_tokens_details.cached_tokens` | `output_tokens` |
+
+See [Usage fields](/models/overview#usage-fields) for reasoning and total token fields.
+
+## Example
+
+<CodeGroup>
+
+```python Python (OpenAI)
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="your-api-key",
+    base_url="https://api.subconscious.dev/v1",
+)
+
+response = client.chat.completions.create(
+    model="subconscious/glm-5.3-marathon",
+    messages=[{"role": "user", "content": "What is the capital of France?"}],
+)
+
+print(response.choices[0].message.content)
+print(response.usage)
+```
+
+```python Python (Anthropic)
+from anthropic import Anthropic
+
+client = Anthropic(
+    auth_token="your-api-key",
+    base_url="https://api.subconscious.dev",
+)
+
+message = client.messages.create(
+    model="subconscious/glm-5.3-marathon",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "What is the capital of France?"}],
+)
+
+print(message.content[0].text)
+print(message.usage)
+```
+
+```bash cURL (Chat Completions)
+curl https://api.subconscious.dev/v1/chat/completions \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "subconscious/glm-5.3-marathon",
+    "messages": [{"role": "user", "content": "What is the capital of France?"}]
+  }'
+```
+
+</CodeGroup>
